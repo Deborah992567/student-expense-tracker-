@@ -25,6 +25,7 @@ class User(Base):
 
     categories: Mapped[list["Category"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     expenses: Mapped[list["Expense"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    recurring_expenses: Mapped[list["RecurringExpense"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     goals: Mapped[list["Goal"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     email_codes: Mapped[list["EmailVerificationCode"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     settings: Mapped["UserSettings"] = relationship(back_populates="user", cascade="all, delete-orphan")
@@ -56,6 +57,22 @@ class Expense(Base):
     deleted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
 
     user: Mapped[User] = relationship(back_populates="expenses")
+
+
+class RecurringExpense(Base):
+    __tablename__ = "recurring_expenses"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(160))
+    amount: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    category: Mapped[str] = mapped_column(String(80))
+    frequency: Mapped[str] = mapped_column(String(20))  # 'monthly', 'weekly'
+    day_of_month: Mapped[int] = mapped_column(nullable=True)  # 1-31
+    day_of_week: Mapped[int] = mapped_column(nullable=True)   # 0-6 (Mon-Sun)
+    last_generated_at: Mapped[date] = mapped_column(Date, nullable=True)
+
+    user: Mapped[User] = relationship(back_populates="recurring_expenses")
 
 
 class Goal(Base):

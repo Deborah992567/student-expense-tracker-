@@ -29,11 +29,15 @@ BCRYPT_ROUNDS = 12
 bearer_scheme = HTTPBearer(auto_error=False)
 
 # Initialize Redis client (usually this would be in database.py or config.py)
-redis_client = redis.from_url(get_settings().redis_url, decode_responses=True)
+try:
+    redis_client = redis.from_url(get_settings().redis_url, decode_responses=True)
+except Exception as e:
+    logger.error("Failed to connect to Redis: %s", e)
+    redis_client = None
 
 def get_redis():
     if not redis_client:
-        raise RuntimeError("Redis is not configured")
+        return None
     return redis_client
 
 def hash_password(password: str) -> str:

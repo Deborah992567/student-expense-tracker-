@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, UTC
 from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -23,6 +23,13 @@ class ExpenseCreate(BaseModel):
     category: str = Field(min_length=1, max_length=80)
     date: date
 
+    @field_validator("date")
+    @classmethod
+    def date_not_in_far_future(cls, v: date) -> date:
+        if v > datetime.now(UTC).date():
+            raise ValueError("Expense date cannot be in the future")
+        return v
+
 
 class ExpenseRead(ExpenseCreate):
     id: int
@@ -42,6 +49,24 @@ class GoalRead(GoalUpdate):
     id: int
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class RecurringExpenseCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=160)
+    amount: Decimal = Field(gt=0)
+    category: str = Field(min_length=1, max_length=80)
+    frequency: str = Field(pattern=r"^(monthly|weekly)$")
+    day_of_month: int | None = Field(None, ge=1, le=31)
+    day_of_week: int | None = Field(None, ge=0, le=6)
+
+
+class RecurringExpenseRead(RecurringExpenseCreate):
+    id: int
+    last_generated_at: date | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 
 
 class ProfileUpdate(BaseModel):
@@ -150,3 +175,7 @@ class CategoryAnalytics(BaseModel):
     category: str
     total_amount: Decimal
     transaction_count: int
+
+class TotalBalanceRead(BaseModel):
+    home_currency: str
+    total_converted_balance: Decimal

@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     smtp_use_tls: bool = True
     smtp_use_ssl: bool = False
     smtp_timeout: int = 10
+    exchange_rate_api_url: str = "https://open.er-api.com/v6/latest/"
 
     model_config = SettingsConfigDict(env_file=ENV_FILE, env_file_encoding="utf-8")
 

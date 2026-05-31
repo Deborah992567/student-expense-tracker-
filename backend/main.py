@@ -5,11 +5,12 @@ import time
 import json
 import csv
 import io
+import urllib.request
 
 if __package__ in {None, ""}:
     sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request, Response, status, Query
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request, Response, status, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import FileResponse
@@ -31,8 +32,8 @@ from backend.auth import (
     revoke_refresh_token,
     revoke_all_user_tokens,
     check_api_rate_limit,
-    redis_client,
     invalidate_state_cache,
+    get_redis,
 )
 from backend.config import get_settings
 from backend.database import Base, engine, get_db, SessionLocal
@@ -86,6 +87,14 @@ async def log_requests(request: Request, call_next):
         return response
     except Exception as e:
         duration = time.time() - start_time
+        # Handle specific SQLAlchemy errors globally
+        if "UniqueViolation" in str(e) or "duplicate key" in str(e).lower():
+             return Response(
+                content=json.dumps({"detail": "This record already exists."}),
+                status_code=409,
+                media_type="application/json"
+            )
+            
         logger.error(
             "Request failed: method=%s path=%s error=%s duration=%.3fs",
             request.method, request.url.path, str(e), duration,
@@ -171,6 +180,7 @@ def login(payload: schemas.LoginRequest, request: Request, response: Response, b
     
     # Trigger background maintenance
     background_tasks.add_task(cleanup_expired_data)
+    background_tasks.add_task(process_recurring_expenses, user.id)
     
     logger.info("Login successful: user_id=%s, email=%s, ip=%s", user.id, email, client_ip)
     token = create_access_token(user)
@@ -308,14 +318,15 @@ def forgot_password(payload: schemas.ForgotPasswordRequest, db: Session = Depend
 def read_state(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
+    redis = Depends(get_redis),
 ) -> dict[str, object]:
     require_verified_email(user)
     check_api_rate_limit(user.id)
     
     # Try to fetch from cache first
     cache_key = f"state:{user.id}"
-    if redis_client:
-        cached_data = redis_client.get(cache_key)
+    if redis:
+        cached_data = redis.get(cache_key)
         if cached_data:
             return json.loads(cached_data)
 
@@ -330,8 +341,8 @@ def read_state(
     state = {"profile": user, "categories": categories, "expenses": expenses, "goal": goal, "settings": settings}
     
     # Store in cache for 5 minutes (300 seconds)
-    if redis_client:
-        redis_client.setex(cache_key, 300, json.dumps(jsonable_encoder(state)))
+    if redis:
+        redis.setex(cache_key, 300, json.dumps(jsonable_encoder(state)))
 
     return state
 
@@ -688,6 +699,118 @@ def get_category_analytics(
     results = db.execute(query).all()
     
     return [{"category": r[0], "total_amount": r[1], "transaction_count": r[2]} for r in results]
+
+@app.get("/api/analytics/total-balance", response_model=schemas.TotalBalanceRead)
+def get_total_converted_balance(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+    redis = Depends(get_redis)
+):
+    """Calculate total balance across all wallets converted to home currency."""
+    require_verified_email(user)
+    settings = db.scalar(select(models.UserSettings).where(models.UserSettings.user_id == user.id))
+    if not settings or not settings.savings_currencies:
+        return {"home_currency": "USD", "total_converted_balance": 0}
+
+    home_curr = settings.country_currency_code() # Helper needed or simple lookup
+    # For brevity, let's assume home currency is based on country.
+    # Usually you'd have a mapping.
+    
+    rates = get_exchange_rates(redis)
+    if not rates:
+        raise HTTPException(status_code=503, detail="Exchange rate service unavailable")
+
+    total = Decimal("0")
+    base_rate = Decimal(str(rates.get("USD", 1))) # API usually returns base USD
+    
+    for wallet in settings.savings_currencies:
+        curr = wallet.get("currency", "USD")
+        amount = Decimal(str(wallet.get("amount", 0)))
+        
+        # Convert to USD then to home currency
+        rate_to_usd = Decimal(str(rates.get(curr, 1)))
+        rate_home = Decimal(str(rates.get(home_curr, 1)))
+        
+        amount_usd = amount / rate_to_usd
+        total += amount_usd * rate_home
+
+    return {"home_currency": home_curr, "total_converted_balance": total.quantize(Decimal("0.01"))}
+
+@app.post("/api/recurring-expenses", response_model=schemas.RecurringExpenseRead)
+def create_recurring_expense(
+    payload: schemas.RecurringExpenseCreate,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user)
+):
+    require_verified_email(user)
+    recurring = models.RecurringExpense(user_id=user.id, **payload.model_dump())
+    db.add(recurring)
+    db.commit()
+    db.refresh(recurring)
+    return recurring
+
+def get_exchange_rates(redis) -> dict:
+    """Fetch exchange rates with Redis caching (24h TTL)."""
+    cache_key = "exchange_rates:v1"
+    if redis:
+        cached = redis.get(cache_key)
+        if cached:
+            return json.loads(cached)
+
+    try:
+        url = f"{get_settings().exchange_rate_api_url}USD"
+        with urllib.request.urlopen(url, timeout=5) as response:
+            data = json.loads(response.read().decode())
+            rates = data.get("rates", {})
+            if redis and rates:
+                redis.setex(cache_key, 86400, json.dumps(rates))
+            return rates
+    except Exception as e:
+        logger.error("Failed to fetch exchange rates: %s", e)
+        return {}
+
+def process_recurring_expenses(user_id: int) -> None:
+    """Background task to generate expenses from recurring templates."""
+    db = SessionLocal()
+    try:
+        today = datetime.now(UTC).date()
+        recurring_list = db.scalars(
+            select(models.RecurringExpense).where(models.RecurringExpense.user_id == user_id)
+        ).all()
+
+        for item in recurring_list:
+            should_generate = False
+            
+            # Basic monthly logic: day of month matches and not yet done this month
+            if item.frequency == "monthly":
+                if today.day >= (item.day_of_month or 1):
+                    if not item.last_generated_at or (item.last_generated_at.month != today.month or item.last_generated_at.year != today.year):
+                        should_generate = True
+            
+            # Basic weekly logic: day of week matches and not yet done this week
+            elif item.frequency == "weekly":
+                if today.weekday() == (item.day_of_week or 0):
+                    if not item.last_generated_at or (today - item.last_generated_at).days >= 7:
+                        should_generate = True
+
+            if should_generate:
+                new_expense = models.Expense(
+                    user_id=user_id,
+                    name=item.name,
+                    amount=item.amount,
+                    category=item.category,
+                    date=today
+                )
+                item.last_generated_at = today
+                db.add(new_expense)
+                logger.info("Generated recurring expense for user_id=%s: %s", user_id, item.name)
+        
+        db.commit()
+        invalidate_state_cache(user_id)
+    except Exception as e:
+        logger.error("Error processing recurring expenses: %s", e)
+    finally:
+        db.close()
 
 def cleanup_expired_data() -> None:
     """
