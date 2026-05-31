@@ -1,0 +1,687 @@
+from datetime import UTC, datetime
+from pathlib import Path
+import sys
+import time
+
+if __package__ in {None, ""}:
+    sys.path.append(str(Path(__file__).resolve().parent.parent))
+
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request, Response, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from sqlalchemy import func, inspect, select, text
+from sqlalchemy.orm import Session
+
+from backend import models, schemas
+from backend.auth import (
+    authenticate_user,
+    check_login_rate_limit,
+    clear_failed_logins,
+    create_access_token,
+    get_current_user,
+    hash_password,
+    normalize_email,
+    record_failed_login,
+    create_refresh_token,
+    verify_refresh_token,
+    revoke_refresh_token,
+    revoke_all_user_tokens,
+)
+from backend.config import get_settings
+from backend.database import Base, engine, get_db
+from backend.email_verification import EmailDeliveryError, create_verification_code, send_verification_email, hash_verification_code, latest_pending_code
+from backend.logging_config import setup_logging, get_logger, get_security_logger, get_access_logger
+from backend.seed import seed_user_defaults
+
+# Setup logging
+setup_logging()
+
+app = FastAPI(title="StudentSpend API")
+settings = get_settings()
+FRONTEND_DIR = Path(__file__).resolve().parent.parent
+logger = get_logger(__name__)
+security_logger = get_security_logger()
+access_logger = get_access_logger()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Middleware to log all HTTP requests and responses."""
+    start_time = time.time()
+    
+    # Store client IP in request state for later use
+    request.state.client_ip = request.client.host if request.client else "unknown"
+    
+    # Log incoming request
+    access_logger.info(
+        "Request started: method=%s path=%s client=%s",
+        request.method, request.url.path, request.state.client_ip
+    )
+    
+    try:
+        response = await call_next(request)
+        duration = time.time() - start_time
+        
+        # Log response
+        access_logger.info(
+            "Request completed: method=%s path=%s status=%d duration=%.3fs",
+            request.method, request.url.path, response.status_code, duration
+        )
+        
+        return response
+    except Exception as e:
+        duration = time.time() - start_time
+        logger.error(
+            "Request failed: method=%s path=%s error=%s duration=%.3fs",
+            request.method, request.url.path, str(e), duration,
+            exc_info=True
+        )
+        raise
+
+
+@app.on_event("startup")
+def startup() -> None:
+    logger.info("Starting StudentSpend API server...")
+    Base.metadata.create_all(bind=engine)
+    ensure_user_profile_columns()
+    ensure_user_range_columns()
+    reset_legacy_starter_budgets()
+    reset_legacy_starter_goals()
+    logger.info("StudentSpend API server started successfully")
+
+
+@app.get("/health")
+def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+@app.get("/", include_in_schema=False)
+def frontend_index() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "index.html", headers={"Cache-Control": "no-store"})
+
+
+@app.get("/{asset_name}", include_in_schema=False)
+def frontend_asset(asset_name: str) -> FileResponse:
+    allowed_assets = {"app.js", "styles.css"}
+    if asset_name not in allowed_assets:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+
+    return FileResponse(FRONTEND_DIR / asset_name, headers={"Cache-Control": "no-store"})
+
+
+@app.post("/api/auth/signup", response_model=schemas.TokenRead, status_code=status.HTTP_201_CREATED)
+def signup(payload: schemas.SignupRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)) -> dict[str, object]:
+    email = normalize_email(payload.email)
+    logger.info("Signup attempt for email=%s", email)
+    
+    existing_user = db.scalar(select(models.User).where(models.User.email == email))
+    if existing_user is not None:
+        logger.warning("Signup failed: email already registered: email=%s", email)
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email is already registered")
+
+    user = models.User(
+        name=f"{payload.first_name.strip()} {payload.last_name.strip()}",
+        first_name=payload.first_name.strip(),
+        last_name=payload.last_name.strip(),
+        gender=payload.gender,
+        email=email,
+        password_hash=hash_password(payload.password),
+    )
+    db.add(user)
+    db.flush()
+    seed_user_defaults(db, user)
+    db.commit()
+    db.refresh(user)
+    background_send_verification(db, user, background_tasks)
+    
+    logger.info("User signup successful: user_id=%s, email=%s", user.id, email)
+    security_logger.info("New user registered: user_id=%s, email=%s", user.id, email)
+    return {"access_token": create_access_token(user), "profile": user}
+
+
+@app.post("/api/auth/login", response_model=schemas.TokenRead)
+def login(payload: schemas.LoginRequest, request: Request, response: Response, db: Session = Depends(get_db)) -> dict[str, object]:
+    email = normalize_email(payload.email)
+    client_ip = getattr(request.state, "client_ip", "unknown")
+    logger.debug("Login attempt for email=%s, ip=%s", email, client_ip)
+    
+    check_login_rate_limit(payload.email)
+    user = authenticate_user(db, payload.email, payload.password)
+    if user is None:
+        record_failed_login(payload.email)
+        security_logger.warning("Failed login attempt: email=%s, ip=%s", email, client_ip)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
+
+    clear_failed_logins(payload.email)
+    logger.info("Login successful: user_id=%s, email=%s, ip=%s", user.id, email, client_ip)
+    token = create_access_token(user)
+    # create refresh token and set as cookie
+    try:
+        plaintext, rt = create_refresh_token(db, user)
+        # response might be a FastAPI Response object; try to set cookie if available
+        # set cookie name 'refresh_token' at path /api/auth/refresh so it's scoped
+        if isinstance(response, Response):
+            response.set_cookie(
+                key="refresh_token",
+                value=plaintext,
+                httponly=True,
+                    secure=get_settings().cookie_secure,
+                    samesite="strict",
+                path="/api/auth/refresh",
+                max_age=get_settings().refresh_token_days * 24 * 3600,
+            )
+    except Exception:
+        logger.exception("Failed to create refresh token")
+
+    return {"access_token": token, "profile": user}
+
+
+@app.post("/api/auth/verify-email", response_model=schemas.TokenRead)
+def verify_email(payload: schemas.VerifyEmailRequest, response: Response, db: Session = Depends(get_db)) -> dict[str, object]:
+    user = db.scalar(select(models.User).where(models.User.email == normalize_email(payload.email)))
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
+    if user.email_verified:
+        return {"access_token": create_access_token(user), "profile": user}
+
+    verification_code = latest_pending_code(db, user)
+    if verification_code is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired verification code")
+    if as_aware_utc(verification_code.expires_at) < datetime.now(UTC):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired verification code")
+    if verification_code.attempts >= settings.email_verification_max_attempts:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many verification attempts")
+
+    verification_code.attempts += 1
+    if verification_code.code_hash != hash_verification_code(user.email, payload.code):
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired verification code")
+
+    verification_code.used_at = datetime.now(UTC)
+    user.email_verified = True
+    db.commit()
+    db.refresh(user)
+    token = create_access_token(user)
+    try:
+        plaintext, rt = create_refresh_token(db, user)
+        if isinstance(response, Response):
+            response.set_cookie(
+                key="refresh_token",
+                value=plaintext,
+                httponly=True,
+                secure=get_settings().cookie_secure,
+                samesite="strict",
+                path="/api/auth/refresh",
+                max_age=get_settings().refresh_token_days * 24 * 3600,
+            )
+    except Exception:
+        logger.exception("Failed to create refresh token on verify")
+
+    return {"access_token": token, "profile": user}
+
+
+@app.post("/api/auth/resend-verification", response_model=schemas.MessageRead)
+def resend_verification(payload: schemas.ResendVerificationRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)) -> dict[str, str]:
+    user = db.scalar(select(models.User).where(models.User.email == normalize_email(payload.email)))
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
+    if user.email_verified:
+        return {"message": "Email is already verified"}
+
+    background_send_verification(db, user, background_tasks)
+    return {"message": "Verification code sent"}
+
+
+@app.post("/api/auth/refresh", response_model=schemas.TokenRead)
+def refresh_token(response: Response, request: Request, db: Session = Depends(get_db)) -> dict[str, object]:
+    # Read refresh token from cookie
+    token = request.cookies.get("refresh_token")
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing refresh token")
+
+    rt = verify_refresh_token(db, token)
+    if not rt:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+
+    user = db.get(models.User, rt.user_id)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+
+    # rotate: revoke current and issue a new one
+    try:
+        revoke_refresh_token(db, rt)
+        plaintext, new_rt = create_refresh_token(db, user)
+        response.set_cookie(
+            key="refresh_token",
+            value=plaintext,
+            httponly=True,
+                secure=get_settings().cookie_secure,
+                samesite="strict",
+            path="/api/auth/refresh",
+            max_age=get_settings().refresh_token_days * 24 * 3600,
+        )
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not rotate refresh token")
+
+    return {"access_token": create_access_token(user), "profile": user}
+
+
+@app.post("/api/auth/logout", response_model=schemas.MessageRead)
+def logout(response: Response, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)) -> dict[str, str]:
+    # Revoke all refresh tokens for the user and clear cookie
+    revoke_all_user_tokens(db, user)
+    response.delete_cookie("refresh_token", path="/api/auth/refresh")
+    return {"message": "Logged out"}
+
+
+@app.post("/api/auth/forgot-password", response_model=schemas.MessageRead)
+def forgot_password(payload: schemas.ForgotPasswordRequest, db: Session = Depends(get_db)) -> dict[str, str]:
+    email = normalize_email(payload.email)
+    user = db.scalar(select(models.User).where(models.User.email == email))
+
+    # Always return the same message regardless of whether the email exists
+    # This prevents email enumeration attacks
+    # TODO: Implement password reset token generation and email delivery
+    return {"message": "If an account exists with this email, password reset instructions will be sent."}
+
+
+@app.get("/api/state", response_model=schemas.AppStateRead)
+def read_state(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> dict[str, object]:
+    require_verified_email(user)
+    categories = db.scalars(select(models.Category).where(models.Category.user_id == user.id).order_by(models.Category.id)).all()
+    expenses = db.scalars(select(models.Expense).where(models.Expense.user_id == user.id).order_by(models.Expense.date.desc(), models.Expense.id.desc())).all()
+    goal = db.scalars(select(models.Goal).where(models.Goal.user_id == user.id).order_by(models.Goal.id)).first()
+    if goal is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Savings goal was not initialized")
+
+    settings = db.scalars(select(models.UserSettings).where(models.UserSettings.user_id == user.id)).first()
+
+    return {"profile": user, "categories": categories, "expenses": expenses, "goal": goal, "settings": settings}
+
+
+@app.patch("/api/settings", response_model=schemas.UserSettingsRead)
+def update_settings(
+    payload: schemas.SettingsUpdate,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> models.UserSettings:
+    require_verified_email(user)
+    settings = db.scalars(select(models.UserSettings).where(models.UserSettings.user_id == user.id)).first()
+    if settings is None:
+        settings = models.UserSettings(user_id=user.id, country=payload.country or "United States", savings_currencies=payload.savings_currencies or [])
+        db.add(settings)
+    else:
+        if payload.country is not None:
+            settings.country = payload.country
+        if payload.savings_currencies is not None:
+            settings.savings_currencies = payload.savings_currencies
+
+    db.commit()
+    db.refresh(settings)
+    return settings
+
+
+@app.patch("/api/profile", response_model=schemas.ProfileRead)
+def update_profile(
+    payload: schemas.ProfileUpdate,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> models.User:
+    require_verified_email(user)
+    user.allowance = payload.allowance
+    if payload.preferred_range is not None:
+        user.preferred_range = payload.preferred_range
+    if payload.custom_range_start is not None:
+        user.custom_range_start = payload.custom_range_start
+    if payload.custom_range_end is not None:
+        user.custom_range_end = payload.custom_range_end
+    db.commit()
+    db.refresh(user)
+    logger.info("Profile updated for user_id=%s: allowance=%s, preferred_range=%s", 
+                user.id, user.allowance, user.preferred_range)
+    return user
+
+
+@app.post("/api/expenses", response_model=schemas.ExpenseRead, status_code=status.HTTP_201_CREATED)
+def create_expense(
+    payload: schemas.ExpenseCreate,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> models.Expense:
+    require_verified_email(user)
+    logger.debug("Creating expense for user_id=%s: name=%s, amount=%s, category=%s", 
+                 user.id, payload.name, payload.amount, payload.category)
+    expense = models.Expense(user_id=user.id, **payload.model_dump())
+    db.add(expense)
+    db.commit()
+    db.refresh(expense)
+    logger.info("Expense created: expense_id=%s, user_id=%s, name=%s, amount=%s", 
+                expense.id, user.id, payload.name, payload.amount)
+    return expense
+
+
+@app.patch("/api/categories/{category_id}", response_model=schemas.CategoryRead)
+def update_category(
+    category_id: int,
+    payload: schemas.CategoryUpdate,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> models.Category:
+    require_verified_email(user)
+    category = db.scalar(
+        select(models.Category).where(
+            models.Category.id == category_id,
+            models.Category.user_id == user.id,
+        ),
+    )
+    if category is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
+
+    category.budget = payload.budget
+    db.commit()
+    db.refresh(category)
+    return category
+
+
+@app.patch("/api/expenses/{expense_id}/delete", response_model=schemas.ExpenseRead)
+def soft_delete_expense(
+    expense_id: int,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> models.Expense:
+    require_verified_email(user)
+    expense = db.scalar(
+        select(models.Expense).where(models.Expense.id == expense_id, models.Expense.user_id == user.id)
+    )
+    if expense is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Expense not found")
+    if expense.deleted:
+        return expense
+
+    expense.deleted = True
+    expense.deleted_at = datetime.now(UTC)
+    db.commit()
+    db.refresh(expense)
+    logger.info("Expense soft-deleted: expense_id=%s, user_id=%s", expense.id, user.id)
+    return expense
+
+
+@app.post("/api/expenses/{expense_id}/restore", response_model=schemas.ExpenseRead)
+def restore_expense(
+    expense_id: int,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> models.Expense:
+    require_verified_email(user)
+    expense = db.scalar(
+        select(models.Expense).where(models.Expense.id == expense_id, models.Expense.user_id == user.id)
+    )
+    if expense is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Expense not found")
+    if not expense.deleted:
+        return expense
+
+    expense.deleted = False
+    expense.deleted_at = None
+    db.commit()
+    db.refresh(expense)
+    logger.info("Expense restored: expense_id=%s, user_id=%s", expense.id, user.id)
+    return expense
+
+
+@app.get("/api/expenses/recycle", response_model=schemas.ExpenseListRead)
+def list_recycle_bin(
+    page: int = 1,
+    per_page: int = 50,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> dict[str, object]:
+    require_verified_email(user)
+    query = select(models.Expense).where(models.Expense.user_id == user.id, models.Expense.deleted == True).order_by(models.Expense.deleted_at.desc())
+    total = db.scalar(select(func.count()).select_from(query.subquery()))
+    expenses = db.scalars(query.limit(per_page).offset((page - 1) * per_page)).all()
+    pagination = schemas.PaginationInfo(
+        page=page,
+        per_page=per_page,
+        total=int(total or 0),
+        total_pages=(int(total or 0) + per_page - 1) // per_page,
+        has_next=((page * per_page) < (int(total or 0))),
+        has_prev=(page > 1),
+    )
+    return {"expenses": expenses, "pagination": pagination}
+
+
+@app.delete("/api/expenses/{expense_id}", response_model=schemas.MessageRead)
+def permanently_delete_expense(
+    expense_id: int,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> dict[str, str]:
+    require_verified_email(user)
+    expense = db.scalar(
+        select(models.Expense).where(models.Expense.id == expense_id, models.Expense.user_id == user.id)
+    )
+    if expense is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Expense not found")
+
+    if not expense.deleted:
+        # To prevent accidental hard deletes, require that expense be soft-deleted first
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Expense must be in recycle bin before permanent deletion")
+
+    db.delete(expense)
+    db.commit()
+    logger.info("Expense permanently deleted: expense_id=%s, user_id=%s", expense_id, user.id)
+    return {"message": "Expense permanently deleted"}
+
+
+@app.get("/api/expenses", response_model=schemas.ExpenseListRead)
+def list_expenses(
+    page: int = 1,
+    per_page: int = 20,
+    search: str = "",
+    category: str = "",
+    start_date: str = "",
+    end_date: str = "",
+    min_amount: float = 0,
+    max_amount: float = 0,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> dict[str, object]:
+    require_verified_email(user)
+
+    # Validate pagination
+    page = max(1, page)
+    per_page = min(max(1, per_page), 100)
+
+    # Build query
+    query = select(models.Expense).where(models.Expense.user_id == user.id)
+
+    # Apply search filter
+    if search:
+        search_pattern = f"%{search.lower()}%"
+        query = query.where(models.Expense.name.ilike(search_pattern))
+
+    # Apply category filter
+    if category:
+        query = query.where(models.Expense.category == category)
+
+    # Apply date range filters
+    if start_date:
+        query = query.where(models.Expense.date >= start_date)
+    if end_date:
+        query = query.where(models.Expense.date <= end_date)
+
+    # Apply amount range filters
+    if min_amount > 0:
+        query = query.where(models.Expense.amount >= min_amount)
+    if max_amount > 0:
+        query = query.where(models.Expense.amount <= max_amount)
+
+    # Get total count before pagination
+    count_query = select(models.Expense.id).where(models.Expense.user_id == user.id)
+    if search:
+        count_query = count_query.where(models.Expense.name.ilike(search_pattern))
+    if category:
+        count_query = count_query.where(models.Expense.category == category)
+    if start_date:
+        count_query = count_query.where(models.Expense.date >= start_date)
+    if end_date:
+        count_query = count_query.where(models.Expense.date <= end_date)
+    if min_amount > 0:
+        count_query = count_query.where(models.Expense.amount >= min_amount)
+    if max_amount > 0:
+        count_query = count_query.where(models.Expense.amount <= max_amount)
+
+    total = db.scalar(select(func.count()).select_from(count_query.subquery()))
+
+    # Order and paginate
+    query = query.order_by(models.Expense.date.desc(), models.Expense.id.desc())
+    offset = (page - 1) * per_page
+    query = query.offset(offset).limit(per_page)
+
+    expenses = db.scalars(query).all()
+
+    total_pages = (total + per_page - 1) // per_page if total > 0 else 1
+
+    return {
+        "expenses": expenses,
+        "pagination": {
+            "page": page,
+            "per_page": per_page,
+            "total": total,
+            "total_pages": total_pages,
+            "has_next": page < total_pages,
+            "has_prev": page > 1,
+        },
+    }
+
+
+@app.put("/api/goal", response_model=schemas.GoalRead)
+def update_goal(
+    payload: schemas.GoalUpdate,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> models.Goal:
+    require_verified_email(user)
+    goal = db.scalars(select(models.Goal).where(models.Goal.user_id == user.id).order_by(models.Goal.id)).first()
+    if goal is None:
+        goal = models.Goal(user_id=user.id, **payload.model_dump())
+        db.add(goal)
+    else:
+        goal.name = payload.name
+        goal.target = payload.target
+        goal.saved = payload.saved
+
+    db.commit()
+    db.refresh(goal)
+    return goal
+
+
+def require_verified_email(user: models.User) -> None:
+    if not user.email_verified:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Email verification required")
+
+
+def background_send_verification(db: Session, user: models.User, background_tasks: BackgroundTasks) -> None:
+    code = create_verification_code(db, user)
+    background_tasks.add_task(send_verification_email, user.email, code)
+    logger.info("Verification email queued for background task: email=%s", user.email)
+
+
+def reset_legacy_starter_goals() -> None:
+    with Session(engine) as db:
+        goals = db.scalars(
+            select(models.Goal)
+            .join(models.User)
+            .where(
+                models.Goal.name == "Emergency fund",
+                models.Goal.target == 600,
+                models.Goal.saved == 225,
+                ~select(models.Expense.id).where(models.Expense.user_id == models.Goal.user_id).exists(),
+            ),
+        ).all()
+        for goal in goals:
+            goal.saved = 0
+        if goals:
+            db.commit()
+
+
+def ensure_user_profile_columns() -> None:
+    inspector = inspect(engine)
+    if not inspector.has_table("users"):
+        return
+
+    existing_columns = {column["name"] for column in inspector.get_columns("users")}
+    profile_columns = {
+        "first_name": "VARCHAR(80) NOT NULL DEFAULT ''",
+        "last_name": "VARCHAR(80) NOT NULL DEFAULT ''",
+        "gender": "VARCHAR(32) NOT NULL DEFAULT ''",
+    }
+
+    with engine.begin() as connection:
+        for column_name, column_definition in profile_columns.items():
+            if column_name not in existing_columns:
+                connection.execute(text(f"ALTER TABLE users ADD COLUMN {column_name} {column_definition}"))
+
+
+def ensure_user_range_columns() -> None:
+    inspector = inspect(engine)
+    if not inspector.has_table("users"):
+        return
+
+    existing_columns = {column["name"] for column in inspector.get_columns("users")}
+    range_columns = {
+        "preferred_range": "VARCHAR(20) NOT NULL DEFAULT 'week'",
+        "custom_range_start": "DATE NULL",
+        "custom_range_end": "DATE NULL",
+    }
+
+    with engine.begin() as connection:
+        for column_name, column_definition in range_columns.items():
+            if column_name not in existing_columns:
+                connection.execute(text(f"ALTER TABLE users ADD COLUMN {column_name} {column_definition}"))
+
+
+def reset_legacy_starter_budgets() -> None:
+    starter_budgets = {
+        "Food": 260,
+        "Transport": 120,
+        "Books": 150,
+        "Rent": 420,
+        "Social": 100,
+        "Health": 80,
+    }
+    with Session(engine) as db:
+        users_without_expenses = select(models.User.id).where(
+            ~select(models.Expense.id).where(models.Expense.user_id == models.User.id).exists(),
+        )
+        categories = db.scalars(
+            select(models.Category).where(
+                models.Category.user_id.in_(users_without_expenses),
+                models.Category.name.in_(starter_budgets),
+            ),
+        ).all()
+        changed = False
+        for category in categories:
+            if category.budget == starter_budgets[category.name]:
+                category.budget = 0
+                changed = True
+        if changed:
+            db.commit()
+
+
+def as_aware_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)

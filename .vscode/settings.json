@@ -1,0 +1,5 @@
+{
+    "liveServer.settings.port": 5501,
+    "python-envs.defaultEnvManager": "ms-python.python:venv",
+    "python.defaultInterpreterPath": "${workspaceFolder}/venv/bin/python"
+}

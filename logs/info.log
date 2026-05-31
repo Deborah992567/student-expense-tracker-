@@ -1,0 +1,942 @@
+2026-05-20 01:16:26 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-20 01:17:07 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-20 01:17:07 | INFO     | main | startup:85 | Starting StudentSpend API server...
+2026-05-20 01:17:08 | INFO     | main | startup:90 | StudentSpend API server started successfully
+2026-05-20 01:17:43 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-20 01:17:43 | INFO     | main | startup:85 | Starting StudentSpend API server...
+2026-05-20 01:17:43 | INFO     | main | startup:90 | StudentSpend API server started successfully
+2026-05-20 01:18:13 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-20 01:18:13 | INFO     | main | startup:85 | Starting StudentSpend API server...
+2026-05-20 01:18:13 | INFO     | main | startup:90 | StudentSpend API server started successfully
+2026-05-20 01:19:22 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-20 01:19:22 | INFO     | main | startup:85 | Starting StudentSpend API server...
+2026-05-20 01:19:22 | INFO     | main | startup:90 | StudentSpend API server started successfully
+2026-05-20 01:22:19 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-20 01:22:19 | INFO     | main | startup:85 | Starting StudentSpend API server...
+2026-05-20 01:22:19 | INFO     | main | startup:90 | StudentSpend API server started successfully
+2026-05-20 01:24:13 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-20 01:24:13 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-20 01:24:13 | INFO     | main | startup:93 | StudentSpend API server started successfully
+2026-05-20 01:24:51 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-20 01:24:51 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-20 01:24:51 | INFO     | main | startup:93 | StudentSpend API server started successfully
+2026-05-20 01:25:48 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-20 01:25:48 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-20 01:25:48 | INFO     | main | startup:93 | StudentSpend API server started successfully
+2026-05-20 01:26:22 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-20 01:26:22 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-20 01:27:01 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-20 01:27:01 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-20 01:27:33 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-20 01:27:33 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-20 01:28:11 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-20 01:28:19 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-20 01:28:19 | INFO     | backend.main | startup:88 | Starting StudentSpend API server...
+2026-05-20 01:36:15 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-20 01:36:15 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-25 23:42:33 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-25 23:42:33 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-25 23:50:28 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-25 23:50:28 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-25 23:50:28 | INFO     | main | startup:93 | StudentSpend API server started successfully
+2026-05-26 00:05:14 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-26 00:05:14 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-26 00:05:14 | INFO     | main | startup:93 | StudentSpend API server started successfully
+2026-05-26 00:05:39 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-26 00:05:39 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-26 00:05:39 | INFO     | main | startup:93 | StudentSpend API server started successfully
+2026-05-26 00:05:55 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-26 00:05:55 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-26 00:05:55 | INFO     | main | startup:93 | StudentSpend API server started successfully
+2026-05-26 00:06:08 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-26 00:06:08 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-26 00:06:08 | INFO     | main | startup:93 | StudentSpend API server started successfully
+2026-05-26 00:08:08 | INFO     | access | log_requests:60 | Request started: method=OPTIONS path=/api/auth/login client=127.0.0.1
+2026-05-26 00:08:08 | INFO     | access | log_requests:70 | Request completed: method=OPTIONS path=/api/auth/login status=200 duration=0.003s
+2026-05-26 00:08:08 | INFO     | access | log_requests:60 | Request started: method=POST path=/api/auth/login client=127.0.0.1
+2026-05-26 00:08:08 | ERROR    | backend.database | get_db:62 | Database session error: (psycopg.errors.UndefinedColumn) column users.preferred_range does not exist
+LINE 1: ...word_hash, users.email_verified, users.allowance, users.pref...
+                                                             ^
+[SQL: SELECT users.id, users.name, users.first_name, users.last_name, users.gender, users.email, users.password_hash, users.email_verified, users.allowance, users.preferred_range, users.custom_range_start, users.custom_range_end 
+FROM users 
+WHERE users.email = %(email_1)s::VARCHAR]
+[parameters: {'email_1': 'debbieofficial214@gmail.com'}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-05-26 00:08:08 | ERROR    | main | log_requests:78 | Request failed: method=POST path=/api/auth/login error=(psycopg.errors.UndefinedColumn) column users.preferred_range does not exist
+LINE 1: ...word_hash, users.email_verified, users.allowance, users.pref...
+                                                             ^
+[SQL: SELECT users.id, users.name, users.first_name, users.last_name, users.gender, users.email, users.password_hash, users.email_verified, users.allowance, users.preferred_range, users.custom_range_start, users.custom_range_end 
+FROM users 
+WHERE users.email = %(email_1)s::VARCHAR]
+[parameters: {'email_1': 'debbieofficial214@gmail.com'}]
+(Background on this error at: https://sqlalche.me/e/20/f405) duration=0.019s
+Traceback (most recent call last):
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        cursor, str_statement, effective_parameters, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/sqlalchemy/engine/default.py", line 941, in do_execute
+    cursor.execute(statement, parameters)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/psycopg/cursor.py", line 97, in execute
+    raise ex.with_traceback(None)
+psycopg.errors.UndefinedColumn: column users.preferred_range does not exist
+LINE 1: ...word_hash, users.email_verified, users.allowance, users.pref...
+                                                             ^
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/best/Desktop/student-expense/backend/main.py", line 66, in log_requests
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 715, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 735, in app
+    await route.handle(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/fastapi/routing.py", line 301, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/fastapi/routing.py", line 214, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/concurrency.py", line 39, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+  File "/Users/best/Desktop/student-expense/backend/main.py", line 152, in login
+    user = authenticate_user(db, payload.email, payload.password)
+  File "/Users/best/Desktop/student-expense/backend/auth.py", line 104, in authenticate_user
+    user = db.scalar(select(models.User).where(models.User.email == normalized_email))
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/sqlalchemy/orm/session.py", line 2410, in scalar
+    return self._execute_internal(
+           ~~~~~~~~~~~~~~~~~~~~~~^
+        statement,
+        ^^^^^^^^^^
+    ...<4 lines>...
+        **kw,
+        ^^^^^
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/sqlalchemy/orm/session.py", line 2247, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self,
+        ^^^^^
+    ...<4 lines>...
+        conn,
+        ^^^^^
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/sqlalchemy/orm/context.py", line 305, in orm_execute_statement
+    result = conn.execute(
+        statement, params or {}, execution_options=execution_options
+    )
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py", line 1418, in execute
+    return meth(
+        self,
+        distilled_parameters,
+        execution_options or NO_OPTIONS,
+    )
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/sqlalchemy/sql/elements.py", line 515, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self, distilled_params, execution_options
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py", line 1640, in _execute_clauseelement
+    ret = self._execute_context(
+        dialect,
+    ...<8 lines>...
+        cache_hit=cache_hit,
+    )
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        dialect, context, statement, parameters
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        e, str_statement, effective_parameters, cursor, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py", line 2355, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        cursor, str_statement, effective_parameters, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/sqlalchemy/engine/default.py", line 941, in do_execute
+    cursor.execute(statement, parameters)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/psycopg/cursor.py", line 97, in execute
+    raise ex.with_traceback(None)
+sqlalchemy.exc.ProgrammingError: (psycopg.errors.UndefinedColumn) column users.preferred_range does not exist
+LINE 1: ...word_hash, users.email_verified, users.allowance, users.pref...
+                                                             ^
+[SQL: SELECT users.id, users.name, users.first_name, users.last_name, users.gender, users.email, users.password_hash, users.email_verified, users.allowance, users.preferred_range, users.custom_range_start, users.custom_range_end 
+FROM users 
+WHERE users.email = %(email_1)s::VARCHAR]
+[parameters: {'email_1': 'debbieofficial214@gmail.com'}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-05-26 00:08:19 | INFO     | access | log_requests:60 | Request started: method=POST path=/api/auth/login client=127.0.0.1
+2026-05-26 00:08:19 | ERROR    | backend.database | get_db:62 | Database session error: (psycopg.errors.UndefinedColumn) column users.preferred_range does not exist
+LINE 1: ...word_hash, users.email_verified, users.allowance, users.pref...
+                                                             ^
+[SQL: SELECT users.id, users.name, users.first_name, users.last_name, users.gender, users.email, users.password_hash, users.email_verified, users.allowance, users.preferred_range, users.custom_range_start, users.custom_range_end 
+FROM users 
+WHERE users.email = %(email_1)s::VARCHAR]
+[parameters: {'email_1': 'debbieofficial214@gmail.com'}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-05-26 00:08:19 | ERROR    | main | log_requests:78 | Request failed: method=POST path=/api/auth/login error=(psycopg.errors.UndefinedColumn) column users.preferred_range does not exist
+LINE 1: ...word_hash, users.email_verified, users.allowance, users.pref...
+                                                             ^
+[SQL: SELECT users.id, users.name, users.first_name, users.last_name, users.gender, users.email, users.password_hash, users.email_verified, users.allowance, users.preferred_range, users.custom_range_start, users.custom_range_end 
+FROM users 
+WHERE users.email = %(email_1)s::VARCHAR]
+[parameters: {'email_1': 'debbieofficial214@gmail.com'}]
+(Background on this error at: https://sqlalche.me/e/20/f405) duration=0.019s
+Traceback (most recent call last):
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        cursor, str_statement, effective_parameters, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/sqlalchemy/engine/default.py", line 941, in do_execute
+    cursor.execute(statement, parameters)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/psycopg/cursor.py", line 97, in execute
+    raise ex.with_traceback(None)
+psycopg.errors.UndefinedColumn: column users.preferred_range does not exist
+LINE 1: ...word_hash, users.email_verified, users.allowance, users.pref...
+                                                             ^
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/best/Desktop/student-expense/backend/main.py", line 66, in log_requests
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 715, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 735, in app
+    await route.handle(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/fastapi/routing.py", line 301, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/fastapi/routing.py", line 214, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/concurrency.py", line 39, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+  File "/Users/best/Desktop/student-expense/backend/main.py", line 152, in login
+    user = authenticate_user(db, payload.email, payload.password)
+  File "/Users/best/Desktop/student-expense/backend/auth.py", line 104, in authenticate_user
+    user = db.scalar(select(models.User).where(models.User.email == normalized_email))
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/sqlalchemy/orm/session.py", line 2410, in scalar
+    return self._execute_internal(
+           ~~~~~~~~~~~~~~~~~~~~~~^
+        statement,
+        ^^^^^^^^^^
+    ...<4 lines>...
+        **kw,
+        ^^^^^
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/sqlalchemy/orm/session.py", line 2247, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self,
+        ^^^^^
+    ...<4 lines>...
+        conn,
+        ^^^^^
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/sqlalchemy/orm/context.py", line 305, in orm_execute_statement
+    result = conn.execute(
+        statement, params or {}, execution_options=execution_options
+    )
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py", line 1418, in execute
+    return meth(
+        self,
+        distilled_parameters,
+        execution_options or NO_OPTIONS,
+    )
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/sqlalchemy/sql/elements.py", line 515, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self, distilled_params, execution_options
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py", line 1640, in _execute_clauseelement
+    ret = self._execute_context(
+        dialect,
+    ...<8 lines>...
+        cache_hit=cache_hit,
+    )
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        dialect, context, statement, parameters
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        e, str_statement, effective_parameters, cursor, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py", line 2355, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        cursor, str_statement, effective_parameters, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/sqlalchemy/engine/default.py", line 941, in do_execute
+    cursor.execute(statement, parameters)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/psycopg/cursor.py", line 97, in execute
+    raise ex.with_traceback(None)
+sqlalchemy.exc.ProgrammingError: (psycopg.errors.UndefinedColumn) column users.preferred_range does not exist
+LINE 1: ...word_hash, users.email_verified, users.allowance, users.pref...
+                                                             ^
+[SQL: SELECT users.id, users.name, users.first_name, users.last_name, users.gender, users.email, users.password_hash, users.email_verified, users.allowance, users.preferred_range, users.custom_range_start, users.custom_range_end 
+FROM users 
+WHERE users.email = %(email_1)s::VARCHAR]
+[parameters: {'email_1': 'debbieofficial214@gmail.com'}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-05-26 00:08:46 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-26 00:08:46 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-26 00:09:01 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-26 00:09:01 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-26 00:09:02 | INFO     | main | startup:94 | StudentSpend API server started successfully
+2026-05-26 00:09:41 | INFO     | access | log_requests:60 | Request started: method=POST path=/api/auth/login client=127.0.0.1
+2026-05-26 00:09:41 | INFO     | backend.auth | authenticate_user:120 | User authenticated successfully: user_id=1, email=debbieofficial214@gmail.com
+2026-05-26 00:09:41 | INFO     | main | login:160 | Login successful: user_id=1, email=debbieofficial214@gmail.com, ip=127.0.0.1
+2026-05-26 00:09:41 | INFO     | access | log_requests:70 | Request completed: method=POST path=/api/auth/login status=200 duration=0.404s
+2026-05-26 00:09:41 | INFO     | access | log_requests:60 | Request started: method=OPTIONS path=/api/state client=127.0.0.1
+2026-05-26 00:09:41 | INFO     | access | log_requests:70 | Request completed: method=OPTIONS path=/api/state status=200 duration=0.003s
+2026-05-26 00:09:41 | INFO     | access | log_requests:60 | Request started: method=GET path=/api/state client=127.0.0.1
+2026-05-26 00:09:41 | INFO     | access | log_requests:70 | Request completed: method=GET path=/api/state status=200 duration=0.030s
+2026-05-26 00:15:16 | INFO     | access | log_requests:60 | Request started: method=POST path=/api/auth/login client=127.0.0.1
+2026-05-26 00:15:16 | INFO     | backend.auth | authenticate_user:120 | User authenticated successfully: user_id=1, email=debbieofficial214@gmail.com
+2026-05-26 00:15:16 | INFO     | main | login:160 | Login successful: user_id=1, email=debbieofficial214@gmail.com, ip=127.0.0.1
+2026-05-26 00:15:16 | INFO     | access | log_requests:70 | Request completed: method=POST path=/api/auth/login status=200 duration=0.410s
+2026-05-26 00:15:16 | INFO     | access | log_requests:60 | Request started: method=GET path=/api/state client=127.0.0.1
+2026-05-26 00:15:16 | INFO     | access | log_requests:70 | Request completed: method=GET path=/api/state status=200 duration=0.012s
+2026-05-26 00:15:20 | INFO     | access | log_requests:60 | Request started: method=OPTIONS path=/api/expenses client=127.0.0.1
+2026-05-26 00:15:20 | INFO     | access | log_requests:70 | Request completed: method=OPTIONS path=/api/expenses status=200 duration=0.001s
+2026-05-26 00:15:20 | INFO     | access | log_requests:60 | Request started: method=POST path=/api/expenses client=127.0.0.1
+2026-05-26 00:15:20 | INFO     | access | log_requests:70 | Request completed: method=POST path=/api/expenses status=422 duration=0.014s
+2026-05-26 00:19:23 | INFO     | access | log_requests:60 | Request started: method=OPTIONS path=/api/auth/login client=127.0.0.1
+2026-05-26 00:19:23 | INFO     | access | log_requests:70 | Request completed: method=OPTIONS path=/api/auth/login status=200 duration=0.004s
+2026-05-26 00:19:23 | INFO     | access | log_requests:60 | Request started: method=POST path=/api/auth/login client=127.0.0.1
+2026-05-26 00:19:23 | INFO     | backend.auth | authenticate_user:120 | User authenticated successfully: user_id=1, email=debbieofficial214@gmail.com
+2026-05-26 00:19:23 | INFO     | main | login:160 | Login successful: user_id=1, email=debbieofficial214@gmail.com, ip=127.0.0.1
+2026-05-26 00:19:23 | INFO     | access | log_requests:70 | Request completed: method=POST path=/api/auth/login status=200 duration=0.408s
+2026-05-26 00:19:23 | INFO     | access | log_requests:60 | Request started: method=GET path=/api/state client=127.0.0.1
+2026-05-26 00:19:23 | INFO     | access | log_requests:70 | Request completed: method=GET path=/api/state status=200 duration=0.005s
+2026-05-26 00:19:26 | INFO     | access | log_requests:60 | Request started: method=POST path=/api/expenses client=127.0.0.1
+2026-05-26 00:19:26 | INFO     | access | log_requests:70 | Request completed: method=POST path=/api/expenses status=422 duration=0.008s
+2026-05-26 00:21:24 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-26 00:21:24 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-26 00:21:25 | INFO     | main | startup:94 | StudentSpend API server started successfully
+2026-05-26 00:21:38 | INFO     | access | log_requests:60 | Request started: method=POST path=/api/auth/login client=127.0.0.1
+2026-05-26 00:21:39 | WARNING  | backend.auth | authenticate_user:111 | Authentication failed: invalid password for email=debbieofficial214@gmail.com
+2026-05-26 00:21:39 | WARNING  | security | login:156 | Failed login attempt: email=debbieofficial214@gmail.com, ip=127.0.0.1
+2026-05-26 00:21:39 | ERROR    | backend.database | get_db:62 | Database session error: 401: Invalid email or password
+2026-05-26 00:21:39 | INFO     | access | log_requests:70 | Request completed: method=POST path=/api/auth/login status=401 duration=0.400s
+2026-05-26 00:21:44 | INFO     | access | log_requests:60 | Request started: method=POST path=/api/auth/login client=127.0.0.1
+2026-05-26 00:21:45 | INFO     | backend.auth | authenticate_user:120 | User authenticated successfully: user_id=1, email=debbieofficial214@gmail.com
+2026-05-26 00:21:45 | INFO     | main | login:160 | Login successful: user_id=1, email=debbieofficial214@gmail.com, ip=127.0.0.1
+2026-05-26 00:21:45 | INFO     | access | log_requests:70 | Request completed: method=POST path=/api/auth/login status=200 duration=0.446s
+2026-05-26 00:21:45 | INFO     | access | log_requests:60 | Request started: method=OPTIONS path=/api/state client=127.0.0.1
+2026-05-26 00:21:45 | INFO     | access | log_requests:70 | Request completed: method=OPTIONS path=/api/state status=200 duration=0.000s
+2026-05-26 00:21:45 | INFO     | access | log_requests:60 | Request started: method=GET path=/api/state client=127.0.0.1
+2026-05-26 00:21:45 | INFO     | access | log_requests:70 | Request completed: method=GET path=/api/state status=200 duration=0.009s
+2026-05-26 00:21:56 | INFO     | access | log_requests:60 | Request started: method=POST path=/api/expenses client=127.0.0.1
+2026-05-26 00:21:56 | INFO     | main | create_expense:264 | Expense created: expense_id=1, user_id=1, name=transport, amount=40
+2026-05-26 00:21:56 | INFO     | access | log_requests:70 | Request completed: method=POST path=/api/expenses status=201 duration=0.016s
+2026-05-26 00:22:29 | INFO     | access | log_requests:60 | Request started: method=POST path=/api/expenses client=127.0.0.1
+2026-05-26 00:22:29 | INFO     | main | create_expense:264 | Expense created: expense_id=2, user_id=1, name=lunch, amount=89
+2026-05-26 00:22:29 | INFO     | access | log_requests:70 | Request completed: method=POST path=/api/expenses status=201 duration=0.012s
+2026-05-26 00:23:24 | INFO     | access | log_requests:60 | Request started: method=POST path=/api/expenses client=127.0.0.1
+2026-05-26 00:23:24 | INFO     | main | create_expense:264 | Expense created: expense_id=3, user_id=1, name=house fee, amount=30
+2026-05-26 00:23:24 | INFO     | access | log_requests:70 | Request completed: method=POST path=/api/expenses status=201 duration=0.016s
+2026-05-26 00:23:50 | INFO     | access | log_requests:60 | Request started: method=POST path=/api/expenses client=127.0.0.1
+2026-05-26 00:23:50 | INFO     | main | create_expense:264 | Expense created: expense_id=4, user_id=1, name=healthcare, amount=100
+2026-05-26 00:23:50 | INFO     | access | log_requests:70 | Request completed: method=POST path=/api/expenses status=201 duration=0.016s
+2026-05-26 00:24:04 | INFO     | access | log_requests:60 | Request started: method=OPTIONS path=/api/expenses client=127.0.0.1
+2026-05-26 00:24:04 | INFO     | access | log_requests:70 | Request completed: method=OPTIONS path=/api/expenses status=200 duration=0.001s
+2026-05-26 00:24:04 | INFO     | access | log_requests:60 | Request started: method=GET path=/api/expenses client=127.0.0.1
+2026-05-26 00:24:04 | INFO     | access | log_requests:70 | Request completed: method=GET path=/api/expenses status=200 duration=0.016s
+2026-05-26 00:24:08 | INFO     | access | log_requests:60 | Request started: method=GET path=/api/expenses client=127.0.0.1
+2026-05-26 00:24:08 | INFO     | access | log_requests:70 | Request completed: method=GET path=/api/expenses status=200 duration=0.011s
+2026-05-26 00:24:16 | INFO     | access | log_requests:60 | Request started: method=OPTIONS path=/api/expenses client=127.0.0.1
+2026-05-26 00:24:16 | INFO     | access | log_requests:70 | Request completed: method=OPTIONS path=/api/expenses status=200 duration=0.001s
+2026-05-26 00:24:16 | INFO     | access | log_requests:60 | Request started: method=GET path=/api/expenses client=127.0.0.1
+2026-05-26 00:24:16 | INFO     | access | log_requests:70 | Request completed: method=GET path=/api/expenses status=200 duration=0.012s
+2026-05-26 00:30:07 | INFO     | access | log_requests:60 | Request started: method=OPTIONS path=/api/auth/login client=127.0.0.1
+2026-05-26 00:30:07 | INFO     | access | log_requests:70 | Request completed: method=OPTIONS path=/api/auth/login status=200 duration=0.003s
+2026-05-26 00:30:07 | INFO     | access | log_requests:60 | Request started: method=POST path=/api/auth/login client=127.0.0.1
+2026-05-26 00:30:07 | INFO     | backend.auth | authenticate_user:120 | User authenticated successfully: user_id=1, email=debbieofficial214@gmail.com
+2026-05-26 00:30:07 | INFO     | main | login:160 | Login successful: user_id=1, email=debbieofficial214@gmail.com, ip=127.0.0.1
+2026-05-26 00:30:07 | INFO     | access | log_requests:70 | Request completed: method=POST path=/api/auth/login status=200 duration=0.408s
+2026-05-26 00:30:07 | INFO     | access | log_requests:60 | Request started: method=GET path=/api/state client=127.0.0.1
+2026-05-26 00:30:07 | INFO     | access | log_requests:70 | Request completed: method=GET path=/api/state status=200 duration=0.006s
+2026-05-26 00:32:55 | INFO     | access | log_requests:60 | Request started: method=OPTIONS path=/api/goal client=127.0.0.1
+2026-05-26 00:32:55 | INFO     | access | log_requests:70 | Request completed: method=OPTIONS path=/api/goal status=200 duration=0.002s
+2026-05-26 00:32:55 | INFO     | access | log_requests:60 | Request started: method=PUT path=/api/goal client=127.0.0.1
+2026-05-26 00:32:55 | INFO     | access | log_requests:70 | Request completed: method=PUT path=/api/goal status=200 duration=0.022s
+2026-05-26 00:32:56 | INFO     | access | log_requests:60 | Request started: method=PUT path=/api/goal client=127.0.0.1
+2026-05-26 00:32:57 | INFO     | access | log_requests:70 | Request completed: method=PUT path=/api/goal status=200 duration=0.006s
+2026-05-26 00:32:58 | INFO     | access | log_requests:60 | Request started: method=PUT path=/api/goal client=127.0.0.1
+2026-05-26 00:32:58 | INFO     | access | log_requests:70 | Request completed: method=PUT path=/api/goal status=200 duration=0.011s
+2026-05-26 00:44:34 | INFO     | access | log_requests:60 | Request started: method=OPTIONS path=/api/auth/login client=127.0.0.1
+2026-05-26 00:44:34 | INFO     | access | log_requests:70 | Request completed: method=OPTIONS path=/api/auth/login status=200 duration=0.003s
+2026-05-26 00:44:34 | INFO     | access | log_requests:60 | Request started: method=POST path=/api/auth/login client=127.0.0.1
+2026-05-26 00:44:35 | INFO     | backend.auth | authenticate_user:120 | User authenticated successfully: user_id=1, email=debbieofficial214@gmail.com
+2026-05-26 00:44:35 | INFO     | main | login:160 | Login successful: user_id=1, email=debbieofficial214@gmail.com, ip=127.0.0.1
+2026-05-26 00:44:35 | INFO     | access | log_requests:70 | Request completed: method=POST path=/api/auth/login status=200 duration=0.407s
+2026-05-26 00:44:35 | INFO     | access | log_requests:60 | Request started: method=OPTIONS path=/api/state client=127.0.0.1
+2026-05-26 00:44:35 | INFO     | access | log_requests:70 | Request completed: method=OPTIONS path=/api/state status=200 duration=0.000s
+2026-05-26 00:44:35 | INFO     | access | log_requests:60 | Request started: method=GET path=/api/state client=127.0.0.1
+2026-05-26 00:44:35 | INFO     | access | log_requests:70 | Request completed: method=GET path=/api/state status=200 duration=0.006s
+2026-05-26 00:51:32 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-26 00:51:32 | INFO     | backend.main | startup:88 | Starting StudentSpend API server...
+2026-05-26 00:51:42 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-26 00:51:42 | INFO     | backend.main | startup:88 | Starting StudentSpend API server...
+2026-05-26 00:51:43 | INFO     | backend.main | startup:94 | StudentSpend API server started successfully
+2026-05-26 00:52:35 | INFO     | access | log_requests:60 | Request started: method=GET path=/health client=127.0.0.1
+2026-05-26 00:52:35 | INFO     | access | log_requests:70 | Request completed: method=GET path=/health status=200 duration=0.003s
+2026-05-26 00:52:59 | INFO     | access | log_requests:60 | Request started: method=POST path=/api/auth/login client=127.0.0.1
+2026-05-26 00:53:00 | INFO     | backend.auth | authenticate_user:120 | User authenticated successfully: user_id=1, email=debbieofficial214@gmail.com
+2026-05-26 00:53:00 | INFO     | main | login:160 | Login successful: user_id=1, email=debbieofficial214@gmail.com, ip=127.0.0.1
+2026-05-26 00:53:00 | INFO     | access | log_requests:70 | Request completed: method=POST path=/api/auth/login status=200 duration=0.409s
+2026-05-26 00:53:00 | INFO     | access | log_requests:60 | Request started: method=GET path=/api/state client=127.0.0.1
+2026-05-26 00:53:00 | INFO     | access | log_requests:70 | Request completed: method=GET path=/api/state status=200 duration=0.007s
+2026-05-26 00:53:05 | INFO     | access | log_requests:60 | Request started: method=OPTIONS path=/api/goal client=127.0.0.1
+2026-05-26 00:53:05 | INFO     | access | log_requests:70 | Request completed: method=OPTIONS path=/api/goal status=200 duration=0.000s
+2026-05-26 00:53:05 | INFO     | access | log_requests:60 | Request started: method=PUT path=/api/goal client=127.0.0.1
+2026-05-26 00:53:05 | INFO     | access | log_requests:70 | Request completed: method=PUT path=/api/goal status=200 duration=0.007s
+2026-05-26 00:53:09 | INFO     | access | log_requests:60 | Request started: method=PUT path=/api/goal client=127.0.0.1
+2026-05-26 00:53:09 | INFO     | access | log_requests:70 | Request completed: method=PUT path=/api/goal status=200 duration=0.025s
+2026-05-26 00:53:10 | INFO     | access | log_requests:60 | Request started: method=PUT path=/api/goal client=127.0.0.1
+2026-05-26 00:53:10 | INFO     | access | log_requests:70 | Request completed: method=PUT path=/api/goal status=200 duration=0.012s
+2026-05-26 00:53:25 | INFO     | access | log_requests:60 | Request started: method=OPTIONS path=/api/expenses client=127.0.0.1
+2026-05-26 00:53:25 | INFO     | access | log_requests:70 | Request completed: method=OPTIONS path=/api/expenses status=200 duration=0.001s
+2026-05-26 00:53:25 | INFO     | access | log_requests:60 | Request started: method=GET path=/api/expenses client=127.0.0.1
+2026-05-26 00:53:25 | INFO     | access | log_requests:70 | Request completed: method=GET path=/api/expenses status=200 duration=0.010s
+2026-05-26 00:53:26 | INFO     | access | log_requests:60 | Request started: method=GET path=/api/expenses client=127.0.0.1
+2026-05-26 00:53:26 | INFO     | access | log_requests:70 | Request completed: method=GET path=/api/expenses status=200 duration=0.010s
+2026-05-26 00:53:26 | INFO     | access | log_requests:60 | Request started: method=GET path=/api/expenses client=127.0.0.1
+2026-05-26 00:53:26 | INFO     | access | log_requests:70 | Request completed: method=GET path=/api/expenses status=200 duration=0.012s
+2026-05-26 00:53:27 | INFO     | access | log_requests:60 | Request started: method=OPTIONS path=/api/expenses client=127.0.0.1
+2026-05-26 00:53:27 | INFO     | access | log_requests:70 | Request completed: method=OPTIONS path=/api/expenses status=200 duration=0.001s
+2026-05-26 00:53:27 | INFO     | access | log_requests:60 | Request started: method=GET path=/api/expenses client=127.0.0.1
+2026-05-26 00:53:27 | INFO     | access | log_requests:70 | Request completed: method=GET path=/api/expenses status=200 duration=0.010s
+2026-05-26 00:53:31 | INFO     | access | log_requests:60 | Request started: method=OPTIONS path=/api/expenses client=127.0.0.1
+2026-05-26 00:53:31 | INFO     | access | log_requests:70 | Request completed: method=OPTIONS path=/api/expenses status=200 duration=0.001s
+2026-05-26 00:53:31 | INFO     | access | log_requests:60 | Request started: method=GET path=/api/expenses client=127.0.0.1
+2026-05-26 00:53:31 | INFO     | access | log_requests:70 | Request completed: method=GET path=/api/expenses status=200 duration=0.009s
+2026-05-26 00:53:32 | INFO     | access | log_requests:60 | Request started: method=GET path=/api/expenses client=127.0.0.1
+2026-05-26 00:53:32 | INFO     | access | log_requests:70 | Request completed: method=GET path=/api/expenses status=200 duration=0.009s
+2026-05-26 00:53:38 | INFO     | access | log_requests:60 | Request started: method=OPTIONS path=/api/expenses client=127.0.0.1
+2026-05-26 00:53:38 | INFO     | access | log_requests:70 | Request completed: method=OPTIONS path=/api/expenses status=200 duration=0.001s
+2026-05-26 00:53:38 | INFO     | access | log_requests:60 | Request started: method=GET path=/api/expenses client=127.0.0.1
+2026-05-26 00:53:38 | INFO     | access | log_requests:70 | Request completed: method=GET path=/api/expenses status=200 duration=0.008s
+2026-05-26 00:53:46 | INFO     | access | log_requests:60 | Request started: method=OPTIONS path=/api/expenses client=127.0.0.1
+2026-05-26 00:53:46 | INFO     | access | log_requests:70 | Request completed: method=OPTIONS path=/api/expenses status=200 duration=0.002s
+2026-05-26 00:53:46 | INFO     | access | log_requests:60 | Request started: method=GET path=/api/expenses client=127.0.0.1
+2026-05-26 00:53:46 | INFO     | access | log_requests:70 | Request completed: method=GET path=/api/expenses status=200 duration=0.009s
+2026-05-26 00:53:51 | INFO     | access | log_requests:60 | Request started: method=OPTIONS path=/api/expenses client=127.0.0.1
+2026-05-26 00:53:51 | INFO     | access | log_requests:70 | Request completed: method=OPTIONS path=/api/expenses status=200 duration=0.001s
+2026-05-26 00:53:51 | INFO     | access | log_requests:60 | Request started: method=GET path=/api/expenses client=127.0.0.1
+2026-05-26 00:53:51 | INFO     | access | log_requests:70 | Request completed: method=GET path=/api/expenses status=200 duration=0.010s
+2026-05-26 00:53:56 | INFO     | access | log_requests:60 | Request started: method=OPTIONS path=/api/expenses client=127.0.0.1
+2026-05-26 00:53:56 | INFO     | access | log_requests:70 | Request completed: method=OPTIONS path=/api/expenses status=200 duration=0.002s
+2026-05-26 00:53:56 | INFO     | access | log_requests:60 | Request started: method=GET path=/api/expenses client=127.0.0.1
+2026-05-26 00:53:56 | INFO     | access | log_requests:70 | Request completed: method=GET path=/api/expenses status=200 duration=0.008s
+2026-05-26 00:53:57 | INFO     | access | log_requests:60 | Request started: method=GET path=/api/expenses client=127.0.0.1
+2026-05-26 00:53:57 | INFO     | access | log_requests:70 | Request completed: method=GET path=/api/expenses status=200 duration=0.010s
+2026-05-26 00:53:57 | INFO     | access | log_requests:60 | Request started: method=GET path=/api/expenses client=127.0.0.1
+2026-05-26 00:53:57 | INFO     | access | log_requests:70 | Request completed: method=GET path=/api/expenses status=200 duration=0.011s
+2026-05-26 00:53:58 | INFO     | access | log_requests:60 | Request started: method=GET path=/api/expenses client=127.0.0.1
+2026-05-26 00:53:58 | INFO     | access | log_requests:70 | Request completed: method=GET path=/api/expenses status=200 duration=0.012s
+2026-05-26 00:53:58 | INFO     | access | log_requests:60 | Request started: method=GET path=/api/expenses client=127.0.0.1
+2026-05-26 00:53:58 | INFO     | access | log_requests:70 | Request completed: method=GET path=/api/expenses status=200 duration=0.011s
+2026-05-26 00:55:07 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-26 00:55:07 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-26 00:55:07 | INFO     | main | startup:94 | StudentSpend API server started successfully
+2026-05-26 00:55:14 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-26 00:55:14 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-26 00:55:14 | INFO     | main | startup:94 | StudentSpend API server started successfully
+2026-05-26 01:03:24 | INFO     | access | log_requests:60 | Request started: method=OPTIONS path=/api/auth/login client=127.0.0.1
+2026-05-26 01:03:24 | INFO     | access | log_requests:70 | Request completed: method=OPTIONS path=/api/auth/login status=200 duration=0.001s
+2026-05-26 01:03:24 | INFO     | access | log_requests:60 | Request started: method=POST path=/api/auth/login client=127.0.0.1
+2026-05-26 01:03:24 | INFO     | backend.auth | authenticate_user:120 | User authenticated successfully: user_id=1, email=debbieofficial214@gmail.com
+2026-05-26 01:03:24 | INFO     | main | login:160 | Login successful: user_id=1, email=debbieofficial214@gmail.com, ip=127.0.0.1
+2026-05-26 01:03:24 | INFO     | access | log_requests:70 | Request completed: method=POST path=/api/auth/login status=200 duration=0.388s
+2026-05-26 01:03:24 | INFO     | access | log_requests:60 | Request started: method=OPTIONS path=/api/state client=127.0.0.1
+2026-05-26 01:03:24 | INFO     | access | log_requests:70 | Request completed: method=OPTIONS path=/api/state status=200 duration=0.000s
+2026-05-26 01:03:24 | INFO     | access | log_requests:60 | Request started: method=GET path=/api/state client=127.0.0.1
+2026-05-26 01:03:24 | INFO     | access | log_requests:70 | Request completed: method=GET path=/api/state status=200 duration=0.009s
+2026-05-26 01:03:45 | INFO     | access | log_requests:60 | Request started: method=OPTIONS path=/api/goal client=127.0.0.1
+2026-05-26 01:03:45 | INFO     | access | log_requests:70 | Request completed: method=OPTIONS path=/api/goal status=200 duration=0.002s
+2026-05-26 01:03:45 | INFO     | access | log_requests:60 | Request started: method=PUT path=/api/goal client=127.0.0.1
+2026-05-26 01:03:45 | INFO     | access | log_requests:70 | Request completed: method=PUT path=/api/goal status=200 duration=0.019s
+2026-05-26 01:03:46 | INFO     | access | log_requests:60 | Request started: method=PUT path=/api/goal client=127.0.0.1
+2026-05-26 01:03:46 | INFO     | access | log_requests:70 | Request completed: method=PUT path=/api/goal status=200 duration=0.014s
+2026-05-26 01:05:00 | INFO     | access | log_requests:60 | Request started: method=OPTIONS path=/api/categories/1 client=127.0.0.1
+2026-05-26 01:05:00 | INFO     | access | log_requests:70 | Request completed: method=OPTIONS path=/api/categories/1 status=200 duration=0.002s
+2026-05-26 01:05:00 | INFO     | access | log_requests:60 | Request started: method=PATCH path=/api/categories/1 client=127.0.0.1
+2026-05-26 01:05:00 | INFO     | access | log_requests:70 | Request completed: method=PATCH path=/api/categories/1 status=200 duration=0.016s
+2026-05-26 01:05:01 | INFO     | access | log_requests:60 | Request started: method=PATCH path=/api/categories/1 client=127.0.0.1
+2026-05-26 01:05:01 | INFO     | access | log_requests:70 | Request completed: method=PATCH path=/api/categories/1 status=200 duration=0.013s
+2026-05-26 01:05:02 | INFO     | access | log_requests:60 | Request started: method=PATCH path=/api/categories/1 client=127.0.0.1
+2026-05-26 01:05:02 | INFO     | access | log_requests:70 | Request completed: method=PATCH path=/api/categories/1 status=200 duration=0.009s
+2026-05-26 01:05:03 | INFO     | access | log_requests:60 | Request started: method=PATCH path=/api/categories/1 client=127.0.0.1
+2026-05-26 01:05:03 | INFO     | access | log_requests:70 | Request completed: method=PATCH path=/api/categories/1 status=200 duration=0.008s
+2026-05-26 01:05:03 | INFO     | access | log_requests:60 | Request started: method=PATCH path=/api/categories/1 client=127.0.0.1
+2026-05-26 01:05:03 | INFO     | access | log_requests:70 | Request completed: method=PATCH path=/api/categories/1 status=200 duration=0.010s
+2026-05-26 01:05:03 | INFO     | access | log_requests:60 | Request started: method=PATCH path=/api/categories/1 client=127.0.0.1
+2026-05-26 01:05:03 | INFO     | access | log_requests:70 | Request completed: method=PATCH path=/api/categories/1 status=200 duration=0.010s
+2026-05-26 01:05:04 | INFO     | access | log_requests:60 | Request started: method=PATCH path=/api/categories/1 client=127.0.0.1
+2026-05-26 01:05:04 | INFO     | access | log_requests:70 | Request completed: method=PATCH path=/api/categories/1 status=200 duration=0.010s
+2026-05-26 01:05:04 | INFO     | access | log_requests:60 | Request started: method=PATCH path=/api/categories/1 client=127.0.0.1
+2026-05-26 01:05:04 | INFO     | access | log_requests:70 | Request completed: method=PATCH path=/api/categories/1 status=200 duration=0.013s
+2026-05-26 01:05:05 | INFO     | access | log_requests:60 | Request started: method=PATCH path=/api/categories/1 client=127.0.0.1
+2026-05-26 01:05:05 | INFO     | access | log_requests:70 | Request completed: method=PATCH path=/api/categories/1 status=200 duration=0.010s
+2026-05-26 01:05:05 | INFO     | access | log_requests:60 | Request started: method=PATCH path=/api/categories/1 client=127.0.0.1
+2026-05-26 01:05:05 | INFO     | access | log_requests:70 | Request completed: method=PATCH path=/api/categories/1 status=200 duration=0.010s
+2026-05-26 01:05:05 | INFO     | access | log_requests:60 | Request started: method=PATCH path=/api/categories/1 client=127.0.0.1
+2026-05-26 01:05:05 | INFO     | access | log_requests:70 | Request completed: method=PATCH path=/api/categories/1 status=200 duration=0.009s
+2026-05-26 01:05:05 | INFO     | access | log_requests:60 | Request started: method=PATCH path=/api/categories/1 client=127.0.0.1
+2026-05-26 01:05:05 | INFO     | access | log_requests:70 | Request completed: method=PATCH path=/api/categories/1 status=200 duration=0.011s
+2026-05-26 01:05:08 | INFO     | access | log_requests:60 | Request started: method=PATCH path=/api/categories/1 client=127.0.0.1
+2026-05-26 01:05:08 | INFO     | access | log_requests:70 | Request completed: method=PATCH path=/api/categories/1 status=200 duration=0.015s
+2026-05-26 01:05:09 | INFO     | access | log_requests:60 | Request started: method=PATCH path=/api/categories/1 client=127.0.0.1
+2026-05-26 01:05:09 | INFO     | access | log_requests:70 | Request completed: method=PATCH path=/api/categories/1 status=200 duration=0.013s
+2026-05-26 01:05:12 | INFO     | access | log_requests:60 | Request started: method=PATCH path=/api/categories/1 client=127.0.0.1
+2026-05-26 01:05:12 | INFO     | access | log_requests:70 | Request completed: method=PATCH path=/api/categories/1 status=200 duration=0.015s
+2026-05-26 01:05:14 | INFO     | access | log_requests:60 | Request started: method=PATCH path=/api/categories/1 client=127.0.0.1
+2026-05-26 01:05:14 | INFO     | access | log_requests:70 | Request completed: method=PATCH path=/api/categories/1 status=200 duration=0.009s
+2026-05-26 01:15:13 | INFO     | access | log_requests:60 | Request started: method=OPTIONS path=/api/auth/login client=127.0.0.1
+2026-05-26 01:15:13 | INFO     | access | log_requests:70 | Request completed: method=OPTIONS path=/api/auth/login status=200 duration=0.003s
+2026-05-26 01:15:13 | INFO     | access | log_requests:60 | Request started: method=POST path=/api/auth/login client=127.0.0.1
+2026-05-26 01:15:14 | INFO     | backend.auth | authenticate_user:120 | User authenticated successfully: user_id=1, email=debbieofficial214@gmail.com
+2026-05-26 01:15:14 | INFO     | main | login:160 | Login successful: user_id=1, email=debbieofficial214@gmail.com, ip=127.0.0.1
+2026-05-26 01:15:14 | INFO     | access | log_requests:70 | Request completed: method=POST path=/api/auth/login status=200 duration=0.407s
+2026-05-26 01:15:14 | INFO     | access | log_requests:60 | Request started: method=OPTIONS path=/api/state client=127.0.0.1
+2026-05-26 01:15:14 | INFO     | access | log_requests:70 | Request completed: method=OPTIONS path=/api/state status=200 duration=0.000s
+2026-05-26 01:15:14 | INFO     | access | log_requests:60 | Request started: method=GET path=/api/state client=127.0.0.1
+2026-05-26 01:15:14 | INFO     | access | log_requests:70 | Request completed: method=GET path=/api/state status=200 duration=0.006s
+2026-05-26 01:16:02 | INFO     | access | log_requests:60 | Request started: method=OPTIONS path=/api/goal client=127.0.0.1
+2026-05-26 01:16:02 | INFO     | access | log_requests:70 | Request completed: method=OPTIONS path=/api/goal status=200 duration=0.001s
+2026-05-26 01:16:02 | INFO     | access | log_requests:60 | Request started: method=PUT path=/api/goal client=127.0.0.1
+2026-05-26 01:16:02 | INFO     | access | log_requests:70 | Request completed: method=PUT path=/api/goal status=200 duration=0.009s
+2026-05-26 01:16:09 | INFO     | access | log_requests:60 | Request started: method=OPTIONS path=/api/expenses client=127.0.0.1
+2026-05-26 01:16:09 | INFO     | access | log_requests:70 | Request completed: method=OPTIONS path=/api/expenses status=200 duration=0.001s
+2026-05-26 01:16:09 | INFO     | access | log_requests:60 | Request started: method=POST path=/api/expenses client=127.0.0.1
+2026-05-26 01:16:09 | INFO     | main | create_expense:264 | Expense created: expense_id=5, user_id=1, name=transport, amount=67
+2026-05-26 01:16:09 | INFO     | access | log_requests:70 | Request completed: method=POST path=/api/expenses status=201 duration=0.025s
+2026-05-26 01:16:09 | INFO     | access | log_requests:60 | Request started: method=PUT path=/api/goal client=127.0.0.1
+2026-05-26 01:16:09 | INFO     | access | log_requests:70 | Request completed: method=PUT path=/api/goal status=200 duration=0.008s
+2026-05-26 01:19:08 | INFO     | access | log_requests:60 | Request started: method=POST path=/api/auth/login client=127.0.0.1
+2026-05-26 01:19:08 | INFO     | backend.auth | authenticate_user:120 | User authenticated successfully: user_id=1, email=debbieofficial214@gmail.com
+2026-05-26 01:19:08 | INFO     | main | login:160 | Login successful: user_id=1, email=debbieofficial214@gmail.com, ip=127.0.0.1
+2026-05-26 01:19:08 | INFO     | access | log_requests:70 | Request completed: method=POST path=/api/auth/login status=200 duration=0.412s
+2026-05-26 01:19:08 | INFO     | access | log_requests:60 | Request started: method=GET path=/api/state client=127.0.0.1
+2026-05-26 01:19:08 | INFO     | access | log_requests:70 | Request completed: method=GET path=/api/state status=200 duration=0.006s
+2026-05-26 01:19:15 | INFO     | access | log_requests:60 | Request started: method=PUT path=/api/goal client=127.0.0.1
+2026-05-26 01:19:15 | INFO     | access | log_requests:70 | Request completed: method=PUT path=/api/goal status=200 duration=0.010s
+2026-05-26 01:19:48 | INFO     | access | log_requests:60 | Request started: method=POST path=/api/expenses client=127.0.0.1
+2026-05-26 01:19:48 | INFO     | main | create_expense:264 | Expense created: expense_id=6, user_id=1, name=games, amount=78
+2026-05-26 01:19:48 | INFO     | access | log_requests:70 | Request completed: method=POST path=/api/expenses status=201 duration=0.014s
+2026-05-26 01:19:48 | INFO     | access | log_requests:60 | Request started: method=PUT path=/api/goal client=127.0.0.1
+2026-05-26 01:19:48 | INFO     | access | log_requests:70 | Request completed: method=PUT path=/api/goal status=200 duration=0.008s
+2026-05-26 01:19:53 | INFO     | access | log_requests:60 | Request started: method=PUT path=/api/goal client=127.0.0.1
+2026-05-26 01:19:53 | INFO     | access | log_requests:70 | Request completed: method=PUT path=/api/goal status=200 duration=0.005s
+2026-05-26 01:21:13 | INFO     | access | log_requests:60 | Request started: method=POST path=/api/expenses client=127.0.0.1
+2026-05-26 01:21:13 | INFO     | main | create_expense:264 | Expense created: expense_id=7, user_id=1, name=hjjuui, amount=200
+2026-05-26 01:21:13 | INFO     | access | log_requests:70 | Request completed: method=POST path=/api/expenses status=201 duration=0.015s
+2026-05-26 01:21:13 | INFO     | access | log_requests:60 | Request started: method=PUT path=/api/goal client=127.0.0.1
+2026-05-26 01:21:13 | INFO     | access | log_requests:70 | Request completed: method=PUT path=/api/goal status=200 duration=0.010s
+2026-05-26 01:21:19 | INFO     | access | log_requests:60 | Request started: method=PUT path=/api/goal client=127.0.0.1
+2026-05-26 01:21:19 | INFO     | access | log_requests:70 | Request completed: method=PUT path=/api/goal status=200 duration=0.008s
+2026-05-28 11:15:34 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-28 11:15:34 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-28 11:15:34 | INFO     | main | startup:94 | StudentSpend API server started successfully
+2026-05-28 11:15:44 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-28 11:15:44 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-28 11:15:44 | INFO     | main | startup:94 | StudentSpend API server started successfully
+2026-05-28 11:18:22 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-28 11:18:22 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-28 11:18:22 | INFO     | main | startup:94 | StudentSpend API server started successfully
+2026-05-28 11:18:44 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-28 11:18:44 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-28 11:18:44 | INFO     | main | startup:94 | StudentSpend API server started successfully
+2026-05-28 11:36:59 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-28 11:36:59 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-28 11:36:59 | INFO     | main | startup:94 | StudentSpend API server started successfully
+2026-05-28 11:37:08 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-28 11:37:08 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-28 11:37:08 | INFO     | main | startup:94 | StudentSpend API server started successfully
+2026-05-28 11:37:09 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-28 11:37:09 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-28 11:37:09 | INFO     | main | startup:94 | StudentSpend API server started successfully
+2026-05-28 11:38:04 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-28 11:38:04 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-28 11:38:04 | INFO     | main | startup:94 | StudentSpend API server started successfully
+2026-05-28 11:38:13 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-28 11:38:13 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-28 11:38:13 | INFO     | main | startup:94 | StudentSpend API server started successfully
+2026-05-28 11:38:45 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-28 11:38:45 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-28 11:38:45 | INFO     | main | startup:94 | StudentSpend API server started successfully
+2026-05-28 11:43:44 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-28 11:43:44 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-28 11:43:44 | INFO     | main | startup:94 | StudentSpend API server started successfully
+2026-05-28 11:43:50 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-28 11:43:50 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-28 11:43:51 | INFO     | main | startup:94 | StudentSpend API server started successfully
+2026-05-28 11:44:10 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-28 11:44:10 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-28 11:44:21 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-28 11:44:21 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-28 11:44:21 | INFO     | main | startup:94 | StudentSpend API server started successfully
+2026-05-28 11:44:30 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-28 11:44:30 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-28 11:44:30 | INFO     | main | startup:94 | StudentSpend API server started successfully
+2026-05-28 11:44:50 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-28 11:44:50 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-28 11:44:50 | INFO     | main | startup:94 | StudentSpend API server started successfully
+2026-05-28 11:45:11 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-28 11:45:11 | INFO     | main | startup:88 | Starting StudentSpend API server...
+2026-05-28 11:45:11 | INFO     | main | startup:94 | StudentSpend API server started successfully
+2026-05-28 11:45:40 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-28 11:46:00 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-28 11:46:23 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-28 11:46:25 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-28 11:48:35 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-28 11:49:35 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-28 11:53:37 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-28 11:53:37 | INFO     | main | startup:92 | Starting StudentSpend API server...
+2026-05-28 11:53:37 | INFO     | main | startup:98 | StudentSpend API server started successfully
+2026-05-28 11:53:37 | INFO     | access | log_requests:64 | Request started: method=OPTIONS path=/api/auth/login client=127.0.0.1
+2026-05-28 11:53:37 | INFO     | access | log_requests:74 | Request completed: method=OPTIONS path=/api/auth/login status=200 duration=0.001s
+2026-05-28 11:53:49 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-28 11:53:49 | INFO     | main | startup:92 | Starting StudentSpend API server...
+2026-05-28 11:53:49 | INFO     | main | startup:98 | StudentSpend API server started successfully
+2026-05-28 11:54:30 | INFO     | access | log_requests:64 | Request started: method=POST path=/api/auth/login client=127.0.0.1
+2026-05-28 11:54:30 | INFO     | backend.auth | authenticate_user:120 | User authenticated successfully: user_id=1, email=debbieofficial214@gmail.com
+2026-05-28 11:54:30 | INFO     | main | login:164 | Login successful: user_id=1, email=debbieofficial214@gmail.com, ip=127.0.0.1
+2026-05-28 11:54:30 | INFO     | access | log_requests:74 | Request completed: method=POST path=/api/auth/login status=200 duration=0.414s
+2026-05-28 11:54:30 | INFO     | access | log_requests:64 | Request started: method=OPTIONS path=/api/state client=127.0.0.1
+2026-05-28 11:54:30 | INFO     | access | log_requests:74 | Request completed: method=OPTIONS path=/api/state status=200 duration=0.000s
+2026-05-28 11:54:30 | INFO     | access | log_requests:64 | Request started: method=GET path=/api/state client=127.0.0.1
+2026-05-28 11:54:30 | ERROR    | backend.database | get_db:67 | Database session error: 1 validation errors:
+  {'type': 'model_attributes_type', 'loc': ('response', 'settings'), 'msg': 'Input should be a valid dictionary or object to extract fields from', 'input': None}
+
+2026-05-28 11:54:30 | ERROR    | main | log_requests:82 | Request failed: method=GET path=/api/state error=1 validation errors:
+  {'type': 'model_attributes_type', 'loc': ('response', 'settings'), 'msg': 'Input should be a valid dictionary or object to extract fields from', 'input': None}
+ duration=0.010s
+Traceback (most recent call last):
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 157, in call_next
+    message = await recv_stream.receive()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/anyio/streams/memory.py", line 132, in receive
+    raise EndOfStream from None
+anyio.EndOfStream
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/best/Desktop/student-expense/backend/main.py", line 70, in log_requests
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 715, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 735, in app
+    await route.handle(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/fastapi/routing.py", line 327, in app
+    content = await serialize_response(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<9 lines>...
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/fastapi/routing.py", line 176, in serialize_response
+    raise ResponseValidationError(
+        errors=_normalize_errors(errors), body=response_content
+    )
+fastapi.exceptions.ResponseValidationError: 1 validation errors:
+  {'type': 'model_attributes_type', 'loc': ('response', 'settings'), 'msg': 'Input should be a valid dictionary or object to extract fields from', 'input': None}
+
+2026-05-28 12:01:17 | INFO     | access | log_requests:64 | Request started: method=GET path=/health client=127.0.0.1
+2026-05-28 12:01:17 | INFO     | access | log_requests:74 | Request completed: method=GET path=/health status=200 duration=0.003s
+2026-05-28 14:19:56 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-05-28 14:19:56 | INFO     | main | startup:92 | Starting StudentSpend API server...
+2026-05-28 14:19:56 | INFO     | main | startup:98 | StudentSpend API server started successfully
+2026-05-28 14:20:14 | INFO     | access | log_requests:64 | Request started: method=OPTIONS path=/api/auth/login client=127.0.0.1
+2026-05-28 14:20:14 | INFO     | access | log_requests:74 | Request completed: method=OPTIONS path=/api/auth/login status=200 duration=0.001s
+2026-05-28 14:20:14 | INFO     | access | log_requests:64 | Request started: method=POST path=/api/auth/login client=127.0.0.1
+2026-05-28 14:20:15 | INFO     | backend.auth | authenticate_user:120 | User authenticated successfully: user_id=1, email=debbieofficial214@gmail.com
+2026-05-28 14:20:15 | INFO     | main | login:164 | Login successful: user_id=1, email=debbieofficial214@gmail.com, ip=127.0.0.1
+2026-05-28 14:20:15 | INFO     | access | log_requests:74 | Request completed: method=POST path=/api/auth/login status=200 duration=0.428s
+2026-05-28 14:20:15 | INFO     | access | log_requests:64 | Request started: method=OPTIONS path=/api/state client=127.0.0.1
+2026-05-28 14:20:15 | INFO     | access | log_requests:74 | Request completed: method=OPTIONS path=/api/state status=200 duration=0.001s
+2026-05-28 14:20:15 | INFO     | access | log_requests:64 | Request started: method=GET path=/api/state client=127.0.0.1
+2026-05-28 14:20:15 | ERROR    | backend.database | get_db:67 | Database session error: 1 validation errors:
+  {'type': 'model_attributes_type', 'loc': ('response', 'settings'), 'msg': 'Input should be a valid dictionary or object to extract fields from', 'input': None}
+
+2026-05-28 14:20:15 | ERROR    | main | log_requests:82 | Request failed: method=GET path=/api/state error=1 validation errors:
+  {'type': 'model_attributes_type', 'loc': ('response', 'settings'), 'msg': 'Input should be a valid dictionary or object to extract fields from', 'input': None}
+ duration=0.013s
+Traceback (most recent call last):
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 157, in call_next
+    message = await recv_stream.receive()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/anyio/streams/memory.py", line 132, in receive
+    raise EndOfStream from None
+anyio.EndOfStream
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/best/Desktop/student-expense/backend/main.py", line 70, in log_requests
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 715, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 735, in app
+    await route.handle(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/fastapi/routing.py", line 327, in app
+    content = await serialize_response(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<9 lines>...
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/fastapi/routing.py", line 176, in serialize_response
+    raise ResponseValidationError(
+        errors=_normalize_errors(errors), body=response_content
+    )
+fastapi.exceptions.ResponseValidationError: 1 validation errors:
+  {'type': 'model_attributes_type', 'loc': ('response', 'settings'), 'msg': 'Input should be a valid dictionary or object to extract fields from', 'input': None}
+
+2026-05-28 14:22:32 | INFO     | access | log_requests:64 | Request started: method=POST path=/api/auth/login client=127.0.0.1
+2026-05-28 14:22:33 | INFO     | backend.auth | authenticate_user:120 | User authenticated successfully: user_id=1, email=debbieofficial214@gmail.com
+2026-05-28 14:22:33 | INFO     | main | login:164 | Login successful: user_id=1, email=debbieofficial214@gmail.com, ip=127.0.0.1
+2026-05-28 14:22:33 | INFO     | access | log_requests:74 | Request completed: method=POST path=/api/auth/login status=200 duration=0.413s
+2026-05-28 14:22:33 | INFO     | access | log_requests:64 | Request started: method=GET path=/api/state client=127.0.0.1
+2026-05-28 14:22:33 | ERROR    | backend.database | get_db:67 | Database session error: 1 validation errors:
+  {'type': 'model_attributes_type', 'loc': ('response', 'settings'), 'msg': 'Input should be a valid dictionary or object to extract fields from', 'input': None}
+
+2026-05-28 14:22:33 | ERROR    | main | log_requests:82 | Request failed: method=GET path=/api/state error=1 validation errors:
+  {'type': 'model_attributes_type', 'loc': ('response', 'settings'), 'msg': 'Input should be a valid dictionary or object to extract fields from', 'input': None}
+ duration=0.006s
+Traceback (most recent call last):
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 157, in call_next
+    message = await recv_stream.receive()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/anyio/streams/memory.py", line 132, in receive
+    raise EndOfStream from None
+anyio.EndOfStream
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/best/Desktop/student-expense/backend/main.py", line 70, in log_requests
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 715, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 735, in app
+    await route.handle(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/fastapi/routing.py", line 327, in app
+    content = await serialize_response(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<9 lines>...
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/fastapi/routing.py", line 176, in serialize_response
+    raise ResponseValidationError(
+        errors=_normalize_errors(errors), body=response_content
+    )
+fastapi.exceptions.ResponseValidationError: 1 validation errors:
+  {'type': 'model_attributes_type', 'loc': ('response', 'settings'), 'msg': 'Input should be a valid dictionary or object to extract fields from', 'input': None}
+

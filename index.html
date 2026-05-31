@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Student Expense Tracker</title>
+    <link rel="stylesheet" href="styles.css?v=20260526" />
+  </head>
+  <body>
+    <section class="auth-screen" id="authScreen">
+      <div class="auth-card">
+        <div class="brand auth-brand">
+          <div class="brand-mark" aria-hidden="true">S</div>
+          <div>
+            <strong>StudentSpend</strong>
+            <span>Private student budget workspace</span>
+          </div>
+        </div>
+        <div>
+          <p class="eyebrow">Account access</p>
+          <div class="auth-title-row">
+            <button id="authBackButton" class="back-button hidden" type="button" aria-label="Back to signup">←</button>
+            <h1 id="authTitle">Sign in</h1>
+          </div>
+        </div>
+        <form id="authForm" class="stacked-form">
+          <div id="authNit ameField" class="form-row hidden">
+            <label>
+              First name
+              <input id="authFirstName" type="text" autocomplete="given-name" />
+            </label>
+            <label>
+              Last name
+              <input id="authLastName" type="text" autocomplete="family-name" />
+            </label>
+          </div>
+          <label id="authGenderField" class="hidden">
+            Gender
+            <select id="authGender">
+              <option value="">Select gender</option>
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+              <option value="non_binary">Non-binary</option>
+              <option value="prefer_not_to_say">Prefer not to say</option>
+            </select>
+          </label>
+          <label>
+            Email
+            <input id="authEmail" type="email" autocomplete="email" required />
+          </label>
+          <label>
+            Password
+            <div class="password-input-wrapper">
+              <input id="authPassword" type="password" autocomplete="current-password" required />
+              <button type="button" class="password-toggle" id="passwordToggle" aria-label="Toggle password visibility" tabindex="-1">
+                <svg class="eye-icon eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <svg class="eye-icon eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                  <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+              </button>
+            </div>
+          </label>
+          <div class="forgot-password-row">
+            <a href="#" id="forgotPasswordLink" class="text-button">Forgot password?</a>
+          </div>
+          <label id="authCodeField" class="hidden">
+            Verification code
+            <input id="authCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" />
+          </label>
+          <button id="authSubmit" class="primary-button" type="submit">Sign in</button>
+        </form>
+        <p id="authMessage" class="auth-message"></p>
+        <button id="resendCodeButton" class="text-button hidden" type="button">Resend code</button>
+        <button id="authModeToggle" class="text-button" type="button">Create an account</button>
+      </div>
+    </section>
+
+    <div class="app-shell hidden" id="appShell">
+      <aside class="sidebar" aria-label="Main navigation">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">S</div>
+          <div>
+            <strong>StudentSpend</strong>
+            <span>Smart budget lab</span>
+          </div>
+        </div>
+
+        <nav class="nav-list">
+          <a href="#dashboard" class="nav-link active">Dashboard</a>
+          <a href="#expenses" class="nav-link">Expenses</a>
+          <a href="#budgets" class="nav-link">Budgets</a>
+          <a href="#receipt" class="nav-link">Receipt Scan</a>
+          <a href="#goals" class="nav-link">Savings</a>
+          <a href="#recycle" class="nav-link">Recycle Bin</a>
+        </nav>
+
+        <div class="student-card">
+          <span class="label" id="accountLabel">Signed in</span>
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <span class="label" id="allowancePeriodLabel">Monthly allowance</span>
+            <div style="display: flex; gap: 4px;">
+              <button id="periodMonthly" class="period-btn active" type="button" style="padding: 2px 8px; font-size: 11px; border-radius: 4px; border: 1px solid #ccc; background: #4CAF50; color: white; cursor: pointer;">Month</button>
+              <button id="periodWeekly" class="period-btn" type="button" style="padding: 2px 8px; font-size: 11px; border-radius: 4px; border: 1px solid #ccc; background: transparent; color: #666; cursor: pointer;">Week</button>
+            </div>
+          </div>
+          <strong id="allowanceLabel">$0</strong>
+          <label for="allowanceInput">Set allowance</label>
+          <input id="allowanceInput" type="number" min="0" step="10" value="0" />
+          <button id="themeToggle" class="sidebar-button" type="button" aria-label="Toggle dark mode">
+            <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+            <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          </button>
+          <button id="logoutButton" class="sidebar-button" type="button">Log out</button>
+        </div>
+      </aside>
+
+      <main>
+        <section class="hero-band" id="dashboard">
+          <div>
+            <p class="eyebrow" id="dashboardGreeting">Welcome back</p>
+            <h1>Track daily spending, scan receipts, and protect your savings goals.</h1>
+          </div>
+          <div class="hero-actions" aria-label="Quick filters">
+            <button class="segmented active" data-range="week">Week</button>
+            <button class="segmented" data-range="month">Month</button>
+            <button class="segmented" data-range="custom">Custom</button>
+          </div>
+          <div id="customRangeInputs" class="custom-range-inputs hidden">
+            <label>
+              Start
+              <input id="customStartDate" type="date" />
+            </label>
+            <label>
+              End
+              <input id="customEndDate" type="date" />
+            </label>
+            <button id="applyCustomRange" class="primary-button" type="button">Apply</button>
+          </div>
+        </section>
+
+        <section class="metric-grid" aria-label="Financial overview">
+          <article class="metric">
+            <span>Total spent</span>
+            <strong id="totalSpent">$0</strong>
+            <small id="spentCaption">This week</small>
+          </article>
+          <article class="metric">
+            <span>Budget left</span>
+            <strong id="budgetLeft">$0</strong>
+            <small id="budgetCaption">Across categories</small>
+          </article>
+          <article class="metric">
+            <span>Savings progress</span>
+            <strong id="savingsProgress">0%</strong>
+            <small id="goalCaption">Goal tracker</small>
+          </article>
+          <article class="metric">
+            <span>Top category</span>
+            <strong id="topCategory">None</strong>
+            <small id="topCategoryCaption">Add expenses to learn</small>
+          </article>
+        </section>
+
+        <div id="sessionMessage" class="session-message hidden" role="status" aria-live="polite"></div>
+
+        <section class="content-grid">
+          <div class="panel" id="expenses">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Expense tracking</p>
+                <h2>Add expense</h2>
+              </div>
+            </div>
+            <form id="expenseForm" class="stacked-form">
+              <div class="form-row">
+                <label>
+                  Description
+                  <input id="expenseName" type="text" placeholder="Campus lunch" required />
+                </label>
+                <label>
+                  Amount
+                  <input id="expenseAmount" type="number" min="0.01" step="0.01" placeholder="12.50" required />
+                </label>
+              </div>
+              <div class="form-row">
+                <label>
+                  Category
+                  <select id="expenseCategory"></select>
+                </label>
+                <label>
+                  Date
+                  <input id="expenseDate" type="date" required />
+                </label>
+              </div>
+              <div style="display: flex; gap: 12px;">
+                <button class="primary-button" type="submit" style="flex: 1;">Add expense</button>
+                <button id="addAnotherExpense" class="secondary-button" type="button" style="flex: 1; margin-top: 0;">Add another</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="panel" id="expenseFilters">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Search & Filter</p>
+                <h2>Find expenses</h2>
+              </div>
+            </div>
+            <div class="filter-form stacked-form">
+              <div class="form-row">
+                <label>
+                  Search
+                  <input id="filterSearch" type="text" placeholder="Search by description..." />
+                </label>
+                <label>
+                  Category
+                  <select id="filterCategory">
+                    <option value="">All categories</option>
+                  </select>
+                </label>
+              </div>
+              <div class="form-row">
+                <label>
+                  Start date
+                  <input id="filterStartDate" type="date" />
+                </label>
+                <label>
+                  End date
+                  <input id="filterEndDate" type="date" />
+                </label>
+              </div>
+              <div class="form-row">
+                <label>
+                  Min amount
+                  <input id="filterMinAmount" type="number" min="0" step="0.01" placeholder="0.00" />
+                </label>
+                <label>
+                  Max amount
+                  <input id="filterMaxAmount" type="number" min="0" step="0.01" placeholder="0.00" />
+                </label>
+              </div>
+              <div class="filter-actions">
+                <button id="applyFilters" class="primary-button" type="button">Apply filters</button>
+                <button id="clearFilters" class="secondary-button" type="button">Clear</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel insights-panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">AI spending insights</p>
+                <h2>Suggestions</h2>
+              </div>
+              <button id="refreshInsights" class="icon-button" type="button" aria-label="Refresh insights" title="Refresh insights">↻</button>
+            </div>
+            <div id="insightsList" class="insights-list"></div>
+          </div>
+        </section>
+
+        <section class="content-grid analytics-grid">
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Weekly / monthly analytics</p>
+                <h2>Spending by category</h2>
+              </div>
+            </div>
+            <div id="categoryBars" class="bar-list"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Timeline</p>
+                <h2>Recent expenses</h2>
+              </div>
+            </div>
+            <div id="expenseList" class="expense-list"></div>
+            <div id="paginationControls" class="pagination-controls hidden">
+              <button id="prevPage" class="pagination-btn" type="button" disabled>← Previous</button>
+              <span id="pageInfo" class="page-info">Page 1 of 1</span>
+              <button id="nextPage" class="pagination-btn" type="button" disabled>Next →</button>
+            </div>
+          </div>
+          <div class="panel" id="recycle" style="display: none;">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Recycle bin</p>
+                <h2>Deleted expenses</h2>
+              </div>
+            </div>
+            <div id="recycleList" class="expense-list"></div>
+            <div id="recycleHint" class="goal-formula" style="margin-top:10px">Items in the recycle bin can be restored or permanently deleted.</div>
+          </div>
+        </section>
+
+        <section class="content-grid">
+          <div class="panel" id="budgets">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Budget categories</p>
+                <h2>Category limits</h2>
+              </div>
+            </div>
+            <div id="budgetList" class="budget-list"></div>
+          </div>
+
+          <div class="panel" id="receipt">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">OCR receipt scanning</p>
+                <h2>Receipt capture</h2>
+              </div>
+            </div>
+            <div class="receipt-drop">
+              <input id="receiptUpload" type="file" accept="image/*" />
+              <div id="receiptPreview" class="receipt-preview">
+                <span>Upload a receipt image</span>
+              </div>
+            </div>
+            <div class="scan-result" id="scanResult">
+              <strong>No receipt scanned yet</strong>
+              <span>Detected merchant, amount, and category will appear here.</span>
+            </div>
+            <button id="addScannedExpense" class="secondary-button" type="button" disabled>Add scanned expense</button>
+          </div>
+        </section>
+
+        <section class="panel goals-panel" id="goals">
+          <div class="panel-header">
+            <div>
+            <div id="budgetList" class="budget-list"></div>
+            <div id="budgetWarning" class="warning hidden" aria-live="polite">Total category budgets exceed your allowance.</div>
+              <h2>Build a cushion for textbooks, transport, and emergencies.</h2>
+            </div>
+          </div>
+          <div class="goal-layout">
+            <form id="goalForm" class="stacked-form">
+              <div class="form-row">
+                <label>
+                  Goal name
+                  <input id="goalName" type="text" required />
+                </label>
+                <label>
+                  Target
+                  <input id="goalTarget" type="number" min="1" step="1" required />
+                </label>
+                <label>
+                  Left after spending
+                  <input id="goalSaved" type="number" min="0" step="1" readonly />
+                </label>
+              </div>
+              <button class="primary-button" type="submit">Update goal</button>
+            </form>
+            <div class="goal-status">
+              <div class="goal-chart-container">
+                <canvas id="savingsChart" width="200" height="200"></canvas>
+              </div>
+              <div class="goal-info">
+                <strong id="goalNameLabel">Emergency fund</strong>
+                <div class="goal-details">
+                  <div class="goal-detail">
+                      <span class="goal-detail-label">Available toward goal</span>
+                      <span class="goal-detail-value saved" id="goalSavedLabel">$0</span>
+                  </div>
+                  <div class="goal-detail">
+                    <span class="goal-detail-label">Spent this period</span>
+                    <span class="goal-detail-value spent" id="goalSpentLabel">$0</span>
+                  </div>
+                  <div class="goal-detail">
+                    <span class="goal-detail-label">Still needed</span>
+                    <span class="goal-detail-value remaining" id="goalRemainingLabel">$0</span>
+                  </div>
+                  <div class="goal-detail">
+                    <span class="goal-detail-label">Target</span>
+                    <span class="goal-detail-value target" id="goalTargetLabel">$0</span>
+                  </div>
+                  <div class="goal-detail">
+                    <span class="goal-detail-label">Surplus after goal</span>
+                    <span class="goal-detail-value surplus" id="goalSurplusLabel">$0</span>
+                  </div>
+                </div>
+                <span id="goalProgressLabel">0% complete</span>
+                <span id="goalFormulaLabel" class="goal-formula">$0 allowance - $0 spent = $0 available</span>
+              </div>
+            </div>
+          </div>
+          <div class="currency-wallets">
+            <div class="wallets-header">
+              <div>
+                <p class="eyebrow">Currency wallets</p>
+                <h3>Saved money by currency</h3>
+              </div>
+              <button id="addCurrency" class="secondary-button" type="button">Add wallet</button>
+            </div>
+            <div class="display-country">
+              <label>
+                Display country
+                <select id="countrySelect"></select>
+              </label>
+            </div>
+            <div class="wallet-summary">
+              <strong>Total in wallets: <span id="walletTotal">$0</span></strong>
+            </div>
+            <div id="currencyList" class="currency-list"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="app.js?v=20260526"></script>
+  </body>
+</html>
