@@ -1287,3 +1287,9 @@ Traceback (most recent call last):
   File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/connection.py", line 1055, in connect_check_health
     raise e
 redis.exceptions.ConnectionError: Error 61 connecting to localhost:6379. Connection refused.
+2026-06-01 00:52:00 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-06-01 00:52:00 | INFO     | main | startup:110 | Starting StudentSpend API server...
+2026-06-01 00:52:01 | INFO     | main | startup:116 | StudentSpend API server started successfully
+2026-06-01 00:52:01 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-06-01 00:52:01 | INFO     | main | startup:110 | Starting StudentSpend API server...
+2026-06-01 00:52:01 | INFO     | main | startup:116 | StudentSpend API server started successfully

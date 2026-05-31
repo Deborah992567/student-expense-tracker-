@@ -14,6 +14,7 @@ if __package__ in {None, ""}:
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request, Response, status, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.encoders import jsonable_encoder
+from redis.exceptions import RedisError
 from fastapi.responses import FileResponse
 from sqlalchemy import func, inspect, select, text
 from sqlalchemy.orm import Session
@@ -327,9 +328,12 @@ def read_state(
     # Try to fetch from cache first
     cache_key = f"state:{user.id}"
     if redis:
-        cached_data = redis.get(cache_key)
-        if cached_data:
-            return json.loads(cached_data)
+        try:
+            cached_data = redis.get(cache_key)
+            if cached_data:
+                return json.loads(cached_data)
+        except RedisError as e:
+            logger.error("Redis cache read error: %s", e)
 
     categories = db.scalars(select(models.Category).where(models.Category.user_id == user.id).order_by(models.Category.id)).all()
     expenses = db.scalars(select(models.Expense).where(models.Expense.user_id == user.id).order_by(models.Expense.date.desc(), models.Expense.id.desc())).all()
@@ -343,7 +347,10 @@ def read_state(
     
     # Store in cache for 5 minutes (300 seconds)
     if redis:
-        redis.setex(cache_key, 300, json.dumps(jsonable_encoder(state)))
+        try:
+            redis.setex(cache_key, 300, json.dumps(jsonable_encoder(state)))
+        except RedisError as e:
+            logger.error("Redis cache write error: %s", e)
 
     return state
 
@@ -754,9 +761,12 @@ def get_exchange_rates(redis) -> dict:
     """Fetch exchange rates with Redis caching (24h TTL)."""
     cache_key = "exchange_rates:v1"
     if redis:
-        cached = redis.get(cache_key)
-        if cached:
-            return json.loads(cached)
+        try:
+            cached = redis.get(cache_key)
+            if cached:
+                return json.loads(cached)
+        except RedisError as e:
+            logger.error("Redis cache read error in get_exchange_rates: %s", e)
 
     try:
         url = f"{get_settings().exchange_rate_api_url}USD"
@@ -764,7 +774,10 @@ def get_exchange_rates(redis) -> dict:
             data = json.loads(response.read().decode())
             rates = data.get("rates", {})
             if redis and rates:
-                redis.setex(cache_key, 86400, json.dumps(rates))
+                try:
+                    redis.setex(cache_key, 86400, json.dumps(rates))
+                except RedisError as e:
+                    logger.error("Redis cache write error in get_exchange_rates: %s", e)
             return rates
     except Exception as e:
         logger.error("Failed to fetch exchange rates: %s", e)

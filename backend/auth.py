@@ -8,6 +8,7 @@ import bcrypt
 import jwt
 from fastapi import Depends, HTTPException, status
 import redis
+from redis.exceptions import RedisError
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import InvalidTokenError
 from sqlalchemy import select
@@ -143,16 +144,19 @@ def check_login_rate_limit(email: str) -> None:
     key = normalize_email(email)
     redis_key = f"login_attempts:{key}"
     
-    attempts = redis_client.get(redis_key)
-    if attempts and int(attempts) >= get_settings().login_max_attempts:
-        security_logger.warning(
-            "Rate limit exceeded: email=%s, attempts=%s",
-            key, attempts
-        )
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many login attempts. Try again later.",
-        )
+    try:
+        attempts = redis_client.get(redis_key)
+        if attempts and int(attempts) >= get_settings().login_max_attempts:
+            security_logger.warning(
+                "Rate limit exceeded: email=%s, attempts=%s",
+                key, attempts
+            )
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many login attempts. Try again later.",
+            )
+    except RedisError as e:
+        logger.error("Redis error in check_login_rate_limit: %s", e)
 
 
 def record_failed_login(email: str) -> None:
@@ -162,20 +166,27 @@ def record_failed_login(email: str) -> None:
     key = normalize_email(email)
     redis_key = f"login_attempts:{key}"
     
-    attempts = redis_client.incr(redis_key)
-    # Set expiry on first failure
-    if attempts == 1:
-        redis_client.expire(redis_key, get_settings().login_lockout_minutes * 60)
-        
-    if attempts >= get_settings().login_max_attempts:
-        security_logger.warning(
-            "Account locked due to too many failed attempts: email=%s, attempts=%d, lockout_minutes=%d",
-            key, attempts, get_settings().login_lockout_minutes
-        )
+    try:
+        attempts = redis_client.incr(redis_key)
+        # Set expiry on first failure
+        if attempts == 1:
+            redis_client.expire(redis_key, get_settings().login_lockout_minutes * 60)
+            
+        if attempts >= get_settings().login_max_attempts:
+            security_logger.warning(
+                "Account locked due to too many failed attempts: email=%s, attempts=%d, lockout_minutes=%d",
+                key, attempts, get_settings().login_lockout_minutes
+            )
+    except RedisError as e:
+        logger.error("Redis error in record_failed_login: %s", e)
 
 def clear_failed_logins(email: str) -> None:
-    if redis_client:
+    if not redis_client:
+        return
+    try:
         redis_client.delete(f"login_attempts:{normalize_email(email)}")
+    except RedisError as e:
+        logger.error("Redis error in clear_failed_logins: %s", e)
 
 def check_api_rate_limit(user_id: int) -> None:
     """General API rate limiting using Redis."""
@@ -183,23 +194,30 @@ def check_api_rate_limit(user_id: int) -> None:
         return
         
     key = f"rate_limit:api:{user_id}"
-    attempts = redis_client.get(key)
-    
-    if attempts and int(attempts) >= get_settings().api_rate_limit_per_minute:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="API rate limit exceeded. Please wait a minute.",
-        )
-    
-    pipe = redis_client.pipeline()
-    pipe.incr(key)
-    pipe.expire(key, 60)
-    pipe.execute()
+    try:
+        attempts = redis_client.get(key)
+        
+        if attempts and int(attempts) >= get_settings().api_rate_limit_per_minute:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="API rate limit exceeded. Please wait a minute.",
+            )
+        
+        pipe = redis_client.pipeline()
+        pipe.incr(key)
+        pipe.expire(key, 60)
+        pipe.execute()
+    except RedisError as e:
+        logger.error("Redis error in check_api_rate_limit: %s", e)
 
 def invalidate_state_cache(user_id: int) -> None:
     """Invalidate the cached app state for a specific user."""
-    if redis_client:
+    if not redis_client:
+        return
+    try:
         redis_client.delete(f"state:{user_id}")
+    except RedisError as e:
+        logger.error("Redis error in invalidate_state_cache: %s", e)
 
 
 def _auth_error() -> HTTPException:
