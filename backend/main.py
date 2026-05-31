@@ -32,7 +32,7 @@ from backend.auth import (
     invalidate_state_cache,
 )
 from backend.config import get_settings
-from backend.database import Base, engine, get_db
+from backend.database import Base, engine, get_db, SessionLocal
 from backend.email_verification import EmailDeliveryError, create_verification_code, send_verification_email, hash_verification_code, latest_pending_code
 from backend.logging_config import setup_logging, get_logger, get_security_logger, get_access_logger
 from backend.seed import seed_user_defaults
@@ -152,7 +152,7 @@ def signup(payload: schemas.SignupRequest, background_tasks: BackgroundTasks, db
 
 
 @app.post("/api/auth/login", response_model=schemas.TokenRead)
-def login(payload: schemas.LoginRequest, request: Request, response: Response, db: Session = Depends(get_db)) -> dict[str, object]:
+def login(payload: schemas.LoginRequest, request: Request, response: Response, background_tasks: BackgroundTasks, db: Session = Depends(get_db)) -> dict[str, object]:
     email = normalize_email(payload.email)
     client_ip = getattr(request.state, "client_ip", "unknown")
     logger.debug("Login attempt for email=%s, ip=%s", email, client_ip)
@@ -165,6 +165,10 @@ def login(payload: schemas.LoginRequest, request: Request, response: Response, d
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
 
     clear_failed_logins(payload.email)
+    
+    # Trigger background maintenance
+    background_tasks.add_task(cleanup_expired_data)
+    
     logger.info("Login successful: user_id=%s, email=%s, ip=%s", user.id, email, client_ip)
     token = create_access_token(user)
     # create refresh token and set as cookie
@@ -623,6 +627,26 @@ def background_send_verification(db: Session, user: models.User, background_task
     code = create_verification_code(db, user)
     background_tasks.add_task(send_verification_email, user.email, code)
     logger.info("Verification email queued for background task: email=%s", user.email)
+
+
+def cleanup_expired_data() -> None:
+    """
+    Background task to remove expired entries from the database.
+    Uses a fresh session to ensure thread safety outside the request lifecycle.
+    """
+    db = SessionLocal()
+    try:
+        now = datetime.now(UTC)
+        # Purge expired refresh tokens
+        db.query(models.RefreshToken).filter(models.RefreshToken.expires_at < now).delete()
+        # Purge expired email verification codes
+        db.query(models.EmailVerificationCode).filter(models.EmailVerificationCode.expires_at < now).delete()
+        db.commit()
+        logger.info("Background cleanup: expired tokens and codes purged.")
+    except Exception as e:
+        logger.error("Background cleanup failed: %s", str(e))
+    finally:
+        db.close()
 
 
 def reset_legacy_starter_goals() -> None:
