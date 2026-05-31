@@ -46,6 +46,8 @@ const defaultState = {
   goal: { name: "Emergency fund", target: 600, saved: 0 },
   expenses: [],
   country: "United States",
+  analyticsStartDate: daysAgo(30),
+  analyticsEndDate: new Date().toISOString().slice(0, 10),
   savingsCurrencies: [
     { currency: "USD", amount: 0 },
   ],
@@ -209,11 +211,26 @@ async function init() {
   window.addEventListener("hashchange", handleHashChange);
   handleHashChange();
 
+  // Analytics date filtering delegation
+  const insightsList = document.querySelector("#insightsList");
+  if (insightsList) {
+    insightsList.addEventListener("click", async (e) => {
+      if (e.target.id === "applyAnalyticsDates") {
+        state.analyticsStartDate = document.querySelector("#analyticsStartDate")?.value;
+        state.analyticsEndDate = document.querySelector("#analyticsEndDate")?.value;
+        await fetchAnalytics();
+      }
+    });
+  }
+
   // Add another expense button
   const addAnotherBtn = document.querySelector("#addAnotherExpense");
   if (addAnotherBtn) {
     addAnotherBtn.addEventListener("click", handleAddAnotherExpense);
   }
+  
+  document.querySelector("#exportExpenses")?.addEventListener("click", handleExportExpenses);
+
   document.querySelectorAll("[data-range]").forEach((button) => {
     button.addEventListener("click", () => setRange(button.dataset.range));
   });
@@ -246,6 +263,7 @@ async function init() {
   showApp();
   render();
   await hydrateFromApi();
+  await fetchAnalytics();
   await autoUpdateGoalSavings();
   render();
 }
@@ -517,6 +535,26 @@ async function updateExpense(id, payload) {
   }
 }
 
+async function handleExportExpenses() {
+  try {
+    const response = await fetch(`${apiBase}/api/expenses/export`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    if (!response.ok) throw new Error("Export failed");
+    
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `student_expenses_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } catch (err) {
+    showNotification("Failed to export expenses. Please try again.", "error");
+  }
+}
+
 async function deleteExpense(id) {
   if (!apiOnline) {
     state.expenses = state.expenses.filter((e) => e.id !== id);
@@ -561,7 +599,7 @@ async function softDeleteExpense(id) {
 
 async function restoreExpense(id) {
   if (!apiOnline) {
-    showSessionMessage("Cannot restore while offline.", 4000);
+    showNotification("Cannot restore while offline.", "warning");
     return;
   }
 
@@ -571,7 +609,7 @@ async function restoreExpense(id) {
     persist();
     await loadRecycleBin();
     render();
-    showSessionMessage("Expense restored", 3000);
+    showNotification("Expense restored", "success");
   } catch (err) {
     apiOnline = false;
   }
@@ -579,14 +617,14 @@ async function restoreExpense(id) {
 
 async function permanentlyDeleteExpense(id) {
   if (!apiOnline) {
-    showSessionMessage("Cannot permanently delete while offline.", 4000);
+    showNotification("Cannot permanently delete while offline.", "warning");
     return;
   }
 
   try {
     await apiRequest(`/api/expenses/${id}`, { method: "DELETE" });
     await loadRecycleBin();
-    showSessionMessage("Expense permanently deleted", 3000);
+    showNotification("Expense permanently deleted", "success");
   } catch (err) {
     apiOnline = false;
   }
@@ -826,19 +864,19 @@ async function handleReceiptUpload(event) {
 
 async function handleScannedExpense() {
   if (!scannedExpense) return;
-  const expense = await createExpense(scannedExpense);
-  state.expenses.unshift(expense);
+  
+  // Populate the form instead of direct save to allow review
+  document.querySelector("#expenseName").value = scannedExpense.name;
+  document.querySelector("#expenseAmount").value = scannedExpense.amount;
+  document.querySelector("#expenseCategory").value = scannedExpense.category;
+  document.querySelector("#expenseDate").value = scannedExpense.date;
+  
+  showNotification("Form populated from receipt. Please review and save.", "info");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  
   scannedExpense = null;
   addScannedExpense.disabled = true;
   receiptUpload.value = "";
-  document.querySelector("#receiptPreview").innerHTML = "<span>Upload a receipt image</span>";
-  document.querySelector("#scanResult").innerHTML = `
-    <strong>Receipt added</strong>
-    <span>The detected transaction is now included in your analytics.</span>
-  `;
-  persist();
-  await autoUpdateGoalSavings();
-  render();
 }
 
 function setRange(range) {
@@ -963,7 +1001,7 @@ function render() {
   renderExpenses(filtered);
   renderBudgets(totals);
   renderGoal(goalPercent, totalSpent);
-  renderCurrencyControls();
+  renderCurrencyControls(); // This now includes Total Balance logic via fetchAnalytics calls
   renderInsights();
 }
 
@@ -1157,6 +1195,15 @@ function renderCurrencyControls() {
     const parts = Object.entries(totals).map(([cur, amt]) => `${formatMoneyInCurrency(amt, cur)}`);
     walletTotalEl.textContent = parts.join(" • ") || formatMoney(0);
   }
+
+  // Show converted total balance if available
+  const totalConvertedEl = document.querySelector("#totalConvertedBalance");
+  if (totalConvertedEl && state.totalConvertedBalance) {
+    totalConvertedEl.textContent = `Total Net Worth: ${formatMoney(state.totalConvertedBalance.total_converted_balance, state.totalConvertedBalance.home_currency)}`;
+    totalConvertedEl.classList.remove("hidden");
+  } else if (totalConvertedEl) {
+    totalConvertedEl.classList.add("hidden");
+  }
 }
 
 function handleCountryChange() {
@@ -1180,7 +1227,7 @@ function handleCurrencyInput(event) {
   persist();
   // Simple validation: if amount > 0 ensure purpose is not blank
   if (currencies[index].amount > 0 && !currencies[index].purpose) {
-    showSessionMessage("Consider adding a purpose for this wallet to keep it meaningful.", 5000);
+    showNotification("Consider adding a purpose for this wallet.", "info");
   }
   clearTimeout(settingsSaveTimer);
   settingsSaveTimer = setTimeout(saveSettingsToServer, 500);
@@ -1317,7 +1364,8 @@ function renderInsights() {
   const totals = getCategoryTotals(filtered);
   const totalSpent = sum(filtered.map((expense) => expense.amount));
   const insights = buildInsights(totals, totalSpent);
-  document.querySelector("#insightsList").innerHTML = insights
+  
+  let html = insights
     .map(
       (insight) => `
         <article class="insight">
@@ -1327,6 +1375,22 @@ function renderInsights() {
       `,
     )
     .join("");
+
+  if (state.categoryAnalytics && state.categoryAnalytics.length) {
+    html += `
+      <div class="category-breakdown">
+        <h4>Category Breakdown</h4>
+        ${state.categoryAnalytics.map(a => `
+          <div class="analytics-row">
+            <span>${a.category} (${a.transaction_count} tx)</span>
+            <strong>${formatMoney(a.total_amount)}</strong>
+          </div>
+        `).join("")}
+      </div>
+    `;
+  }
+
+  document.querySelector("#insightsList").innerHTML = html;
 }
 
 function buildInsights(totals, totalSpent) {
@@ -1792,7 +1856,7 @@ async function apiRequest(path, options = {}) {
       authToken = null;
       localStorage.removeItem(tokenKey);
       apiOnline = false;
-      if (sessionMessageElem) showSessionMessage("Session expired, please sign in again.");
+      showNotification("Session expired, please sign in again.", "error");
     }
 
     const error = new Error(message || `API request failed: ${response.status}`);
