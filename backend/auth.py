@@ -173,6 +173,25 @@ def clear_failed_logins(email: str) -> None:
     if redis_client:
         redis_client.delete(f"login_attempts:{normalize_email(email)}")
 
+def check_api_rate_limit(user_id: int) -> None:
+    """General API rate limiting using Redis."""
+    if not redis_client:
+        return
+        
+    key = f"rate_limit:api:{user_id}"
+    attempts = redis_client.get(key)
+    
+    if attempts and int(attempts) >= get_settings().api_rate_limit_per_minute:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="API rate limit exceeded. Please wait a minute.",
+        )
+    
+    pipe = redis_client.pipeline()
+    pipe.incr(key)
+    pipe.expire(key, 60)
+    pipe.execute()
+
 def invalidate_state_cache(user_id: int) -> None:
     """Invalidate the cached app state for a specific user."""
     if redis_client:

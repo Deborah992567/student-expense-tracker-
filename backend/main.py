@@ -1,13 +1,15 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, date as date_type
 from pathlib import Path
 import sys
 import time
 import json
+import csv
+import io
 
 if __package__ in {None, ""}:
     sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request, Response, status
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request, Response, status, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import FileResponse
@@ -28,6 +30,7 @@ from backend.auth import (
     verify_refresh_token,
     revoke_refresh_token,
     revoke_all_user_tokens,
+    check_api_rate_limit,
     redis_client,
     invalidate_state_cache,
 )
@@ -307,6 +310,7 @@ def read_state(
     user: models.User = Depends(get_current_user),
 ) -> dict[str, object]:
     require_verified_email(user)
+    check_api_rate_limit(user.id)
     
     # Try to fetch from cache first
     cache_key = f"state:{user.id}"
@@ -628,6 +632,62 @@ def background_send_verification(db: Session, user: models.User, background_task
     background_tasks.add_task(send_verification_email, user.email, code)
     logger.info("Verification email queued for background task: email=%s", user.email)
 
+@app.get("/api/expenses/export")
+def export_expenses(
+    format: str = Query("csv", pattern="^(csv)$"),
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user)
+):
+    """Export user expenses to CSV."""
+    require_verified_email(user)
+    check_api_rate_limit(user.id)
+    
+    expenses = db.scalars(
+        select(models.Expense)
+        .where(models.Expense.user_id == user.id, models.Expense.deleted == False)
+        .order_by(models.Expense.date.desc())
+    ).all()
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Date", "Category", "Name", "Amount"])
+    
+    for exp in expenses:
+        writer.writerow([exp.date, exp.category, exp.name, exp.amount])
+    
+    output.seek(0)
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=expenses_{datetime.now().strftime('%Y%m%d')}.csv"}
+    )
+
+@app.get("/api/analytics/categories", response_model=list[schemas.CategoryAnalytics])
+def get_category_analytics(
+    start_date: date_type | None = None,
+    end_date: date_type | None = None,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user)
+):
+    """Get spending breakdown by category."""
+    require_verified_email(user)
+    check_api_rate_limit(user.id)
+    
+    query = select(
+        models.Expense.category,
+        func.sum(models.Expense.amount).label("total_amount"),
+        func.count(models.Expense.id).label("transaction_count")
+    ).where(models.Expense.user_id == user.id, models.Expense.deleted == False)
+    
+    if start_date:
+        query = query.where(models.Expense.date >= start_date)
+    if end_date:
+        query = query.where(models.Expense.date <= end_date)
+        
+    query = query.group_by(models.Expense.category)
+    results = db.execute(query).all()
+    
+    return [{"category": r[0], "total_amount": r[1], "transaction_count": r[2]} for r in results]
 
 def cleanup_expired_data() -> None:
     """

@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     access_token_minutes: int = 15
     refresh_token_days: int = 14
     cookie_secure: bool = False
+    api_rate_limit_per_minute: int = 60
     login_max_attempts: int = 5
     login_lockout_minutes: int = 10
     email_verification_minutes: int = 10

@@ -145,3 +145,8 @@ class PaginationInfo(BaseModel):
 class ExpenseListRead(BaseModel):
     expenses: list[ExpenseRead]
     pagination: PaginationInfo
+
+class CategoryAnalytics(BaseModel):
+    category: str
+    total_amount: Decimal
+    transaction_count: int
