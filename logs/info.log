@@ -940,3 +940,350 @@ Traceback (most recent call last):
 fastapi.exceptions.ResponseValidationError: 1 validation errors:
   {'type': 'model_attributes_type', 'loc': ('response', 'settings'), 'msg': 'Input should be a valid dictionary or object to extract fields from', 'input': None}
 
+2026-06-01 00:48:20 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-06-01 00:48:20 | INFO     | main | startup:108 | Starting StudentSpend API server...
+2026-06-01 00:48:21 | INFO     | main | startup:114 | StudentSpend API server started successfully
+2026-06-01 00:48:33 | INFO     | backend.logging_config | setup_logging:110 | Logging configured successfully (mode: production)
+2026-06-01 00:48:33 | INFO     | main | startup:109 | Starting StudentSpend API server...
+2026-06-01 00:48:33 | INFO     | main | startup:115 | StudentSpend API server started successfully
+2026-06-01 00:48:41 | INFO     | access | log_requests:73 | Request started: method=OPTIONS path=/api/auth/login client=127.0.0.1
+2026-06-01 00:48:41 | INFO     | access | log_requests:83 | Request completed: method=OPTIONS path=/api/auth/login status=200 duration=0.001s
+2026-06-01 00:48:41 | INFO     | access | log_requests:73 | Request started: method=POST path=/api/auth/login client=127.0.0.1
+2026-06-01 00:48:41 | ERROR    | backend.database | get_db:67 | Database session error: Error 61 connecting to localhost:6379. Connection refused.
+2026-06-01 00:48:41 | ERROR    | main | log_requests:99 | Request failed: method=POST path=/api/auth/login error=Error 61 connecting to localhost:6379. Connection refused. duration=0.004s
+Traceback (most recent call last):
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 157, in call_next
+    message = await recv_stream.receive()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/anyio/streams/memory.py", line 132, in receive
+    raise EndOfStream from None
+anyio.EndOfStream
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/best/Desktop/student-expense/backend/main.py", line 79, in log_requests
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 715, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 735, in app
+    await route.handle(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/fastapi/routing.py", line 301, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/fastapi/routing.py", line 214, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/concurrency.py", line 39, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+  File "/Users/best/Desktop/student-expense/backend/main.py", line 173, in login
+    check_login_rate_limit(payload.email)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/backend/auth.py", line 146, in check_login_rate_limit
+    attempts = redis_client.get(redis_key)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/commands/core.py", line 3194, in get
+    return self.execute_command("GET", name, keys=[name])
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/client.py", line 787, in execute_command
+    return self._execute_command(*args, **options)
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/client.py", line 793, in _execute_command
+    conn = self.connection or pool.get_connection()
+                              ~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/utils.py", line 258, in wrapper
+    return func(*args, **kwargs)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/connection.py", line 3139, in get_connection
+    connection.connect()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/connection.py", line 1006, in connect
+    self.retry.call_with_retry(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        lambda: self.connect_check_health(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+        lambda error: self.disconnect(error),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/retry.py", line 132, in call_with_retry
+    raise error
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/retry.py", line 120, in call_with_retry
+    return do()
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/connection.py", line 1007, in <lambda>
+    lambda: self.connect_check_health(
+            ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        check_health=True, retry_socket_connect=False
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ),
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/connection.py", line 1055, in connect_check_health
+    raise e
+redis.exceptions.ConnectionError: Error 61 connecting to localhost:6379. Connection refused.
+2026-06-01 00:48:42 | INFO     | access | log_requests:73 | Request started: method=POST path=/api/auth/login client=127.0.0.1
+2026-06-01 00:48:42 | ERROR    | backend.database | get_db:67 | Database session error: Error 61 connecting to localhost:6379. Connection refused.
+2026-06-01 00:48:42 | ERROR    | main | log_requests:99 | Request failed: method=POST path=/api/auth/login error=Error 61 connecting to localhost:6379. Connection refused. duration=0.002s
+Traceback (most recent call last):
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 157, in call_next
+    message = await recv_stream.receive()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/anyio/streams/memory.py", line 132, in receive
+    raise EndOfStream from None
+anyio.EndOfStream
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/best/Desktop/student-expense/backend/main.py", line 79, in log_requests
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 715, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 735, in app
+    await route.handle(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/fastapi/routing.py", line 301, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/fastapi/routing.py", line 214, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/concurrency.py", line 39, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+  File "/Users/best/Desktop/student-expense/backend/main.py", line 173, in login
+    check_login_rate_limit(payload.email)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/backend/auth.py", line 146, in check_login_rate_limit
+    attempts = redis_client.get(redis_key)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/commands/core.py", line 3194, in get
+    return self.execute_command("GET", name, keys=[name])
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/client.py", line 787, in execute_command
+    return self._execute_command(*args, **options)
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/client.py", line 793, in _execute_command
+    conn = self.connection or pool.get_connection()
+                              ~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/utils.py", line 258, in wrapper
+    return func(*args, **kwargs)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/connection.py", line 3139, in get_connection
+    connection.connect()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/connection.py", line 1006, in connect
+    self.retry.call_with_retry(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        lambda: self.connect_check_health(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+        lambda error: self.disconnect(error),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/retry.py", line 132, in call_with_retry
+    raise error
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/retry.py", line 120, in call_with_retry
+    return do()
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/connection.py", line 1007, in <lambda>
+    lambda: self.connect_check_health(
+            ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        check_health=True, retry_socket_connect=False
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ),
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/connection.py", line 1055, in connect_check_health
+    raise e
+redis.exceptions.ConnectionError: Error 61 connecting to localhost:6379. Connection refused.
+2026-06-01 00:48:43 | INFO     | access | log_requests:73 | Request started: method=POST path=/api/auth/login client=127.0.0.1
+2026-06-01 00:48:43 | ERROR    | backend.database | get_db:67 | Database session error: Error 61 connecting to localhost:6379. Connection refused.
+2026-06-01 00:48:43 | ERROR    | main | log_requests:99 | Request failed: method=POST path=/api/auth/login error=Error 61 connecting to localhost:6379. Connection refused. duration=0.002s
+Traceback (most recent call last):
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 157, in call_next
+    message = await recv_stream.receive()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/anyio/streams/memory.py", line 132, in receive
+    raise EndOfStream from None
+anyio.EndOfStream
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/best/Desktop/student-expense/backend/main.py", line 79, in log_requests
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 715, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 735, in app
+    await route.handle(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/fastapi/routing.py", line 301, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/fastapi/routing.py", line 214, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/concurrency.py", line 39, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+  File "/Users/best/Desktop/student-expense/backend/main.py", line 173, in login
+    check_login_rate_limit(payload.email)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/backend/auth.py", line 146, in check_login_rate_limit
+    attempts = redis_client.get(redis_key)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/commands/core.py", line 3194, in get
+    return self.execute_command("GET", name, keys=[name])
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/client.py", line 787, in execute_command
+    return self._execute_command(*args, **options)
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/client.py", line 793, in _execute_command
+    conn = self.connection or pool.get_connection()
+                              ~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/utils.py", line 258, in wrapper
+    return func(*args, **kwargs)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/connection.py", line 3139, in get_connection
+    connection.connect()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/connection.py", line 1006, in connect
+    self.retry.call_with_retry(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        lambda: self.connect_check_health(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+        lambda error: self.disconnect(error),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/retry.py", line 132, in call_with_retry
+    raise error
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/retry.py", line 120, in call_with_retry
+    return do()
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/connection.py", line 1007, in <lambda>
+    lambda: self.connect_check_health(
+            ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        check_health=True, retry_socket_connect=False
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ),
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/connection.py", line 1055, in connect_check_health
+    raise e
+redis.exceptions.ConnectionError: Error 61 connecting to localhost:6379. Connection refused.

@@ -149,6 +149,12 @@ async function init() {
   authBackButton.addEventListener("click", returnToSignup);
   resendCodeButton.addEventListener("click", resendVerificationCode);
   logoutButton.addEventListener("click", logout);
+  
+  authEmail.addEventListener("input", () => {
+    const isValid = isValidEmail(authEmail.value.trim());
+    authEmail.style.borderColor = authEmail.value && !isValid ? "var(--red)" : "";
+  });
+
   passwordToggle.addEventListener("click", togglePasswordVisibility);
   if (forgotPasswordLink) {
     forgotPasswordLink.addEventListener("click", handleForgotPassword);
@@ -271,7 +277,7 @@ async function init() {
 async function handleAuthSubmit(event) {
   event.preventDefault();
   authMessage.textContent = "";
-  authSubmit.disabled = true;
+  toggleLoading(authSubmit, true, authSubmit.textContent);
 
   try {
     if (authMode === "verify") {
@@ -317,10 +323,11 @@ async function handleAuthSubmit(event) {
     showApp();
     await hydrateFromApi();
     render();
+    showNotification("Logged in successfully", "success");
   } catch (error) {
-    authMessage.textContent = error.message || "Could not sign in. Check your details and try again.";
+    showNotification(error.message || "Could not sign in. Check your details and try again.", "error");
   } finally {
-    authSubmit.disabled = false;
+    toggleLoading(authSubmit, false, authMode === "verify" ? "Verify account" : (authMode === "signup" ? "Create account" : "Sign in"));
   }
 }
 
@@ -490,7 +497,7 @@ async function addExpenseAndRender() {
 
   // Validate required fields
   if (!name || !amount || !category || !date) {
-    alert("Please fill in all fields");
+    showNotification("Please fill in all required fields", "warning");
     return;
   }
 
@@ -1820,6 +1827,19 @@ async function updateProfile(allowance) {
   }
 }
 
+async function createRecurringExpense(payload) {
+  try {
+    const recurring = await apiRequest("/api/recurring-expenses", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    showNotification(`Recurring expense "${recurring.name}" created`, "success");
+    return recurring;
+  } catch (error) {
+    showNotification("Failed to create recurring expense", "error");
+  }
+}
+
 async function apiRequest(path, options = {}) {
   const { skipAuth = false, headers: customHeaders = {}, ...fetchOptions } = options;
   const headers = { "Content-Type": "application/json", ...customHeaders };
@@ -1856,7 +1876,9 @@ async function apiRequest(path, options = {}) {
       authToken = null;
       localStorage.removeItem(tokenKey);
       apiOnline = false;
-      showNotification("Session expired, please sign in again.", "error");
+      if (typeof showNotification === 'function') {
+        showNotification("Session expired, please sign in again.", "error");
+      }
     }
 
     const error = new Error(message || `API request failed: ${response.status}`);
@@ -1867,15 +1889,43 @@ async function apiRequest(path, options = {}) {
   return response.json();
 }
 
-function showSessionMessage(message, timeout = 10000) {
-  if (!sessionMessageElem) return;
-  sessionMessageElem.textContent = message;
-  sessionMessageElem.classList.remove("hidden");
-  if (timeout > 0) {
-    setTimeout(() => {
-      hideSessionMessage();
-    }, timeout);
+/**
+ * Non-blocking notification helper
+ * @param {string} message 
+ * @param {'success' | 'error' | 'warning' | 'info'} type 
+ */
+function showNotification(message, type = "info") {
+  let container = document.querySelector("#notificationContainer");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "notificationContainer";
+    document.body.appendChild(container);
   }
+  
+  const toast = document.createElement("div");
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  
+  container.appendChild(toast);
+  
+  // Auto-remove after 4 seconds
+  setTimeout(() => {
+    toast.classList.add("fade-out");
+    setTimeout(() => toast.remove(), 500);
+  }, 4000);
+}
+
+/**
+ * Toggle loading state on an element
+ */
+function toggleLoading(element, isLoading, originalText = "Submit") {
+  if (!element) return;
+  element.disabled = isLoading;
+  element.innerHTML = isLoading ? '<span class="spinner"></span> Thinking...' : originalText;
+}
+
+function showSessionMessage(message, timeout = 10000) {
+  showNotification(message, "info");
 }
 
 function hideSessionMessage() {

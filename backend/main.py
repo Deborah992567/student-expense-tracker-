@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, date as date_type
+from decimal import Decimal
 from pathlib import Path
 import sys
 import time
