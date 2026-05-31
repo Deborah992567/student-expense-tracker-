@@ -29,7 +29,7 @@ BCRYPT_ROUNDS = 12
 bearer_scheme = HTTPBearer(auto_error=False)
 
 # Initialize Redis client (usually this would be in database.py or config.py)
-redis_client = redis.from_url(get_settings().redis_url, decode_responses=True) if hasattr(get_settings(), 'redis_url') else None
+redis_client = redis.from_url(get_settings().redis_url, decode_responses=True)
 
 def get_redis():
     if not redis_client:
@@ -172,6 +172,11 @@ def record_failed_login(email: str) -> None:
 def clear_failed_logins(email: str) -> None:
     if redis_client:
         redis_client.delete(f"login_attempts:{normalize_email(email)}")
+
+def invalidate_state_cache(user_id: int) -> None:
+    """Invalidate the cached app state for a specific user."""
+    if redis_client:
+        redis_client.delete(f"state:{user_id}")
 
 
 def _auth_error() -> HTTPException:

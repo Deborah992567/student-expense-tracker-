@@ -2,12 +2,14 @@ from datetime import UTC, datetime
 from pathlib import Path
 import sys
 import time
+import json
 
 if __package__ in {None, ""}:
     sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import FileResponse
 from sqlalchemy import func, inspect, select, text
 from sqlalchemy.orm import Session
@@ -26,6 +28,8 @@ from backend.auth import (
     verify_refresh_token,
     revoke_refresh_token,
     revoke_all_user_tokens,
+    redis_client,
+    invalidate_state_cache,
 )
 from backend.config import get_settings
 from backend.database import Base, engine, get_db
@@ -299,6 +303,14 @@ def read_state(
     user: models.User = Depends(get_current_user),
 ) -> dict[str, object]:
     require_verified_email(user)
+    
+    # Try to fetch from cache first
+    cache_key = f"state:{user.id}"
+    if redis_client:
+        cached_data = redis_client.get(cache_key)
+        if cached_data:
+            return json.loads(cached_data)
+
     categories = db.scalars(select(models.Category).where(models.Category.user_id == user.id).order_by(models.Category.id)).all()
     expenses = db.scalars(select(models.Expense).where(models.Expense.user_id == user.id).order_by(models.Expense.date.desc(), models.Expense.id.desc())).all()
     goal = db.scalars(select(models.Goal).where(models.Goal.user_id == user.id).order_by(models.Goal.id)).first()
@@ -307,7 +319,13 @@ def read_state(
 
     settings = db.scalars(select(models.UserSettings).where(models.UserSettings.user_id == user.id)).first()
 
-    return {"profile": user, "categories": categories, "expenses": expenses, "goal": goal, "settings": settings}
+    state = {"profile": user, "categories": categories, "expenses": expenses, "goal": goal, "settings": settings}
+    
+    # Store in cache for 5 minutes (300 seconds)
+    if redis_client:
+        redis_client.setex(cache_key, 300, json.dumps(jsonable_encoder(state)))
+
+    return state
 
 
 @app.patch("/api/settings", response_model=schemas.UserSettingsRead)
@@ -329,6 +347,7 @@ def update_settings(
 
     db.commit()
     db.refresh(settings)
+    invalidate_state_cache(user.id)
     return settings
 
 
@@ -350,6 +369,7 @@ def update_profile(
     db.refresh(user)
     logger.info("Profile updated for user_id=%s: allowance=%s, preferred_range=%s", 
                 user.id, user.allowance, user.preferred_range)
+    invalidate_state_cache(user.id)
     return user
 
 
@@ -368,6 +388,7 @@ def create_expense(
     db.refresh(expense)
     logger.info("Expense created: expense_id=%s, user_id=%s, name=%s, amount=%s", 
                 expense.id, user.id, payload.name, payload.amount)
+    invalidate_state_cache(user.id)
     return expense
 
 
@@ -391,6 +412,7 @@ def update_category(
     category.budget = payload.budget
     db.commit()
     db.refresh(category)
+    invalidate_state_cache(user.id)
     return category
 
 
@@ -414,6 +436,7 @@ def soft_delete_expense(
     db.commit()
     db.refresh(expense)
     logger.info("Expense soft-deleted: expense_id=%s, user_id=%s", expense.id, user.id)
+    invalidate_state_cache(user.id)
     return expense
 
 
@@ -437,6 +460,7 @@ def restore_expense(
     db.commit()
     db.refresh(expense)
     logger.info("Expense restored: expense_id=%s, user_id=%s", expense.id, user.id)
+    invalidate_state_cache(user.id)
     return expense
 
 
@@ -482,6 +506,7 @@ def permanently_delete_expense(
     db.delete(expense)
     db.commit()
     logger.info("Expense permanently deleted: expense_id=%s, user_id=%s", expense_id, user.id)
+    invalidate_state_cache(user.id)
     return {"message": "Expense permanently deleted"}
 
 
@@ -585,6 +610,7 @@ def update_goal(
 
     db.commit()
     db.refresh(goal)
+    invalidate_state_cache(user.id)
     return goal
 
 
