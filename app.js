@@ -593,6 +593,9 @@ async function handleRecurringSubmit(event) {
     recurringForm.reset();
     recurringFrequency.value = "monthly";
     updateRecurringFields();
+    if (recurringForm) {
+      recurringForm.querySelector("button[type=submit]").textContent = "Create recurring expense";
+    }
     showNotification(
       editingRecurringId
         ? `Recurring expense "${savedName}" updated.`
