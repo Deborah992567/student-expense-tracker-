@@ -99,3 +99,44 @@ def send_verification_email(email: str, code: str) -> None:
     except (OSError, smtplib.SMTPException) as exc:
         logger.error("Failed to send verification email to %s: %s", email, str(exc))
         raise EmailDeliveryError("Verification email could not be sent") from exc
+
+
+def send_email_with_attachment(
+    email: str,
+    subject: str,
+    body: str,
+    attachment_bytes: bytes,
+    filename: str,
+    mime_type: str = "text/csv",
+) -> None:
+    settings = get_settings()
+    if not settings.smtp_host:
+        logger.info(
+            "SMTP not configured - statement email for %s: %s (development mode)",
+            email,
+            filename,
+        )
+        print(f"[StudentSpend] Statement email for {email}: {filename}")
+        return
+
+    maintype, subtype = mime_type.split("/", 1)
+    message = EmailMessage()
+    message["Subject"] = subject
+    message["From"] = settings.smtp_from_email
+    message["To"] = email
+    message.set_content(body)
+    message.add_attachment(attachment_bytes, maintype=maintype, subtype=subtype, filename=filename)
+
+    smtp_class = smtplib.SMTP_SSL if settings.smtp_use_ssl else smtplib.SMTP
+    try:
+        logger.debug("Sending statement email to %s via %s:%d", email, settings.smtp_host, settings.smtp_port)
+        with smtp_class(settings.smtp_host, settings.smtp_port, timeout=settings.smtp_timeout) as smtp:
+            if settings.smtp_use_tls and not settings.smtp_use_ssl:
+                smtp.starttls()
+            if settings.smtp_username:
+                smtp.login(settings.smtp_username, settings.smtp_password)
+            smtp.send_message(message)
+        logger.info("Statement email sent successfully to %s", email)
+    except (OSError, smtplib.SMTPException) as exc:
+        logger.error("Failed to send statement email to %s: %s", email, str(exc))
+        raise EmailDeliveryError("Statement email could not be sent") from exc

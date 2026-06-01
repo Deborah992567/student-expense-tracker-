@@ -106,6 +106,8 @@ class UserSettingsRead(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+    model_config = ConfigDict(from_attributes=True)
+
 
 class SettingsUpdate(BaseModel):
     country: str | None = None
@@ -156,6 +158,11 @@ class ForgotPasswordRequest(BaseModel):
 
 class MessageRead(BaseModel):
     message: str
+
+
+class ExpenseExportEmailRequest(BaseModel):
+    email: str | None = None
+    format: str = Field(default="csv", pattern=r"^(csv)$")
 
 
 class PaginationInfo(BaseModel):

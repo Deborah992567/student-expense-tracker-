@@ -301,4 +301,4 @@ Edge / security flow:
 - Long term
 	- Multi-user sharing or export/import of budgets
 	- Mobile-native wrapper or advanced PWA support (offline sync)
-	- Multi-region deployment with managed DB (Postgres) and production-grade secrets/CI/CD
+	- Multi-region deployment with managed DB (Postgres) and production-grade 

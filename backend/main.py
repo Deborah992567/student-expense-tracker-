@@ -39,7 +39,14 @@ from backend.auth import (
 )
 from backend.config import get_settings
 from backend.database import Base, engine, get_db, SessionLocal
-from backend.email_verification import EmailDeliveryError, create_verification_code, send_verification_email, hash_verification_code, latest_pending_code
+from backend.email_verification import (
+    EmailDeliveryError,
+    create_verification_code,
+    send_email_with_attachment,
+    send_verification_email,
+    hash_verification_code,
+    latest_pending_code,
+)
 from backend.logging_config import setup_logging, get_logger, get_security_logger, get_access_logger
 from backend.seed import seed_user_defaults
 
@@ -342,6 +349,8 @@ def read_state(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Savings goal was not initialized")
 
     settings = db.scalars(select(models.UserSettings).where(models.UserSettings.user_id == user.id)).first()
+    if settings is None:
+        settings = {"country": "United States", "savings_currencies": []}
 
     state = {"profile": user, "categories": categories, "expenses": expenses, "goal": goal, "settings": settings}
     
