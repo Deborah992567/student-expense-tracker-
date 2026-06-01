@@ -75,6 +75,23 @@ class RecurringExpenseRead(RecurringExpenseCreate):
     model_config = ConfigDict(from_attributes=True)
 
 
+class RecurringExpenseUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=160)
+    amount: Decimal | None = Field(default=None, gt=0)
+    category: str | None = Field(default=None, min_length=1, max_length=80)
+    frequency: str | None = Field(default=None, pattern=r"^(monthly|weekly|yearly)$")
+    day_of_month: int | None = Field(default=None, ge=1, le=31)
+    day_of_week: int | None = Field(default=None, ge=0, le=6)
+
+    @model_validator(mode="after")
+    def validate_recurring_schedule(self):
+        if self.frequency == "weekly" and self.day_of_week is None:
+            raise ValueError("day_of_week is required for weekly recurring expenses")
+        if self.frequency in {"monthly", "yearly"} and self.day_of_month is None:
+            raise ValueError("day_of_month is required for monthly and yearly recurring expenses")
+        return self
+
+
 
 
 class ProfileUpdate(BaseModel):
