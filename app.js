@@ -148,7 +148,9 @@ async function init() {
   authModeToggle.addEventListener("click", toggleAuthMode);
   authBackButton.addEventListener("click", returnToSignup);
   resendCodeButton.addEventListener("click", resendVerificationCode);
-  logoutButton.addEventListener("click", logout);
+  if (logoutButton) {
+    logoutButton.addEventListener("click", logout);
+  }
   
   authEmail.addEventListener("input", () => {
     const isValid = isValidEmail(authEmail.value.trim());
@@ -382,7 +384,9 @@ function showApp() {
   appShell.classList.remove("hidden");
 }
 
-async function logout() {
+async function logout(event) {
+  if (event && event.preventDefault) event.preventDefault();
+
   // Attempt to tell the backend to revoke refresh tokens (best-effort)
   try {
     await apiRequest("/api/auth/logout", { method: "POST" });

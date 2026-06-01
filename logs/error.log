@@ -871,3 +871,161 @@ Traceback (most recent call last):
   File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/redis/connection.py", line 1055, in connect_check_health
     raise e
 redis.exceptions.ConnectionError: Error 61 connecting to localhost:6379. Connection refused.
+2026-06-01 00:52:55 | ERROR    | backend.auth | check_login_rate_limit:159 | Redis error in check_login_rate_limit: Error 61 connecting to localhost:6379. Connection refused.
+2026-06-01 00:52:56 | ERROR    | backend.auth | clear_failed_logins:189 | Redis error in clear_failed_logins: Error 61 connecting to localhost:6379. Connection refused.
+2026-06-01 00:52:56 | ERROR    | backend.auth | check_api_rate_limit:211 | Redis error in check_api_rate_limit: Error 61 connecting to localhost:6379. Connection refused.
+2026-06-01 00:52:56 | ERROR    | main | read_state:336 | Redis cache read error: Error 61 connecting to localhost:6379. Connection refused.
+2026-06-01 00:52:56 | ERROR    | backend.auth | invalidate_state_cache:220 | Redis error in invalidate_state_cache: Error 61 connecting to localhost:6379. Connection refused.
+2026-06-01 00:52:56 | ERROR    | main | read_state:353 | Redis cache write error: Error 61 connecting to localhost:6379. Connection refused.
+2026-06-01 00:52:56 | ERROR    | backend.database | get_db:67 | Database session error: 1 validation errors:
+  {'type': 'model_attributes_type', 'loc': ('response', 'settings'), 'msg': 'Input should be a valid dictionary or object to extract fields from', 'input': None}
+
+2026-06-01 00:52:56 | ERROR    | main | log_requests:100 | Request failed: method=GET path=/api/state error=1 validation errors:
+  {'type': 'model_attributes_type', 'loc': ('response', 'settings'), 'msg': 'Input should be a valid dictionary or object to extract fields from', 'input': None}
+ duration=0.030s
+Traceback (most recent call last):
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 157, in call_next
+    message = await recv_stream.receive()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/anyio/streams/memory.py", line 132, in receive
+    raise EndOfStream from None
+anyio.EndOfStream
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/best/Desktop/student-expense/backend/main.py", line 80, in log_requests
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 715, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 735, in app
+    await route.handle(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/fastapi/routing.py", line 327, in app
+    content = await serialize_response(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<9 lines>...
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/fastapi/routing.py", line 176, in serialize_response
+    raise ResponseValidationError(
+        errors=_normalize_errors(errors), body=response_content
+    )
+fastapi.exceptions.ResponseValidationError: 1 validation errors:
+  {'type': 'model_attributes_type', 'loc': ('response', 'settings'), 'msg': 'Input should be a valid dictionary or object to extract fields from', 'input': None}
+
+2026-06-01 00:54:10 | ERROR    | backend.database | get_db:67 | Database session error: 401: Authentication required
+2026-06-01 00:54:10 | ERROR    | backend.database | get_db:67 | Database session error: 401: Missing refresh token
+2026-06-01 00:54:11 | ERROR    | backend.database | get_db:67 | Database session error: 401: Authentication required
+2026-06-01 00:54:11 | ERROR    | backend.database | get_db:67 | Database session error: 401: Missing refresh token
+2026-06-01 00:54:11 | ERROR    | backend.database | get_db:67 | Database session error: 401: Authentication required
+2026-06-01 00:54:11 | ERROR    | backend.database | get_db:67 | Database session error: 401: Missing refresh token
+2026-06-01 00:54:11 | ERROR    | backend.database | get_db:67 | Database session error: 401: Authentication required
+2026-06-01 00:54:11 | ERROR    | backend.database | get_db:67 | Database session error: 401: Missing refresh token
+2026-06-01 00:54:14 | ERROR    | backend.database | get_db:67 | Database session error: 401: Authentication required
+2026-06-01 00:54:14 | ERROR    | backend.database | get_db:67 | Database session error: 401: Missing refresh token
+2026-06-01 00:54:14 | ERROR    | backend.database | get_db:67 | Database session error: 401: Authentication required
+2026-06-01 00:54:14 | ERROR    | backend.database | get_db:67 | Database session error: 401: Missing refresh token
+2026-06-01 00:54:14 | ERROR    | backend.database | get_db:67 | Database session error: 401: Authentication required
+2026-06-01 00:54:14 | ERROR    | backend.database | get_db:67 | Database session error: 401: Missing refresh token
+2026-06-01 00:56:20 | ERROR    | backend.auth | check_login_rate_limit:159 | Redis error in check_login_rate_limit: Error 61 connecting to localhost:6379. Connection refused.
+2026-06-01 00:56:21 | ERROR    | backend.auth | clear_failed_logins:189 | Redis error in clear_failed_logins: Error 61 connecting to localhost:6379. Connection refused.
+2026-06-01 00:56:21 | ERROR    | backend.auth | check_api_rate_limit:211 | Redis error in check_api_rate_limit: Error 61 connecting to localhost:6379. Connection refused.
+2026-06-01 00:56:21 | ERROR    | main | read_state:336 | Redis cache read error: Error 61 connecting to localhost:6379. Connection refused.
+2026-06-01 00:56:21 | ERROR    | backend.auth | invalidate_state_cache:220 | Redis error in invalidate_state_cache: Error 61 connecting to localhost:6379. Connection refused.
+2026-06-01 00:56:21 | ERROR    | main | read_state:353 | Redis cache write error: Error 61 connecting to localhost:6379. Connection refused.
+2026-06-01 00:56:21 | ERROR    | backend.database | get_db:67 | Database session error: 1 validation errors:
+  {'type': 'model_attributes_type', 'loc': ('response', 'settings'), 'msg': 'Input should be a valid dictionary or object to extract fields from', 'input': None}
+
+2026-06-01 00:56:21 | ERROR    | main | log_requests:100 | Request failed: method=GET path=/api/state error=1 validation errors:
+  {'type': 'model_attributes_type', 'loc': ('response', 'settings'), 'msg': 'Input should be a valid dictionary or object to extract fields from', 'input': None}
+ duration=0.020s
+Traceback (most recent call last):
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 157, in call_next
+    message = await recv_stream.receive()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/anyio/streams/memory.py", line 132, in receive
+    raise EndOfStream from None
+anyio.EndOfStream
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/best/Desktop/student-expense/backend/main.py", line 80, in log_requests
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 715, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 735, in app
+    await route.handle(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/fastapi/routing.py", line 327, in app
+    content = await serialize_response(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<9 lines>...
+    )
+    ^
+  File "/Users/best/Desktop/student-expense/venv/lib/python3.14/site-packages/fastapi/routing.py", line 176, in serialize_response
+    raise ResponseValidationError(
+        errors=_normalize_errors(errors), body=response_content
+    )
+fastapi.exceptions.ResponseValidationError: 1 validation errors:
+  {'type': 'model_attributes_type', 'loc': ('response', 'settings'), 'msg': 'Input should be a valid dictionary or object to extract fields from', 'input': None}
+
+2026-06-01 00:56:23 | ERROR    | backend.database | get_db:67 | Database session error: 401: Authentication required
+2026-06-01 00:56:23 | ERROR    | backend.database | get_db:67 | Database session error: 401: Missing refresh token
+2026-06-01 00:56:23 | ERROR    | backend.database | get_db:67 | Database session error: 401: Authentication required
+2026-06-01 00:56:23 | ERROR    | backend.database | get_db:67 | Database session error: 401: Missing refresh token
+2026-06-01 00:56:23 | ERROR    | backend.database | get_db:67 | Database session error: 401: Authentication required
+2026-06-01 00:56:23 | ERROR    | backend.database | get_db:67 | Database session error: 401: Missing refresh token
+2026-06-01 00:56:23 | ERROR    | backend.database | get_db:67 | Database session error: 401: Authentication required
+2026-06-01 00:56:23 | ERROR    | backend.database | get_db:67 | Database session error: 401: Missing refresh token
