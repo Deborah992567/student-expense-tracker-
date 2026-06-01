@@ -1038,6 +1038,7 @@ function render() {
     : "Add expenses to learn";
 
   renderHealthScore(totals, totalSpent);
+  renderBudgetWarnings(totals);
 
   renderCategoryBars(totals, totalSpent);
   renderExpenses(filtered);
@@ -1063,6 +1064,87 @@ function renderCategoryOptions() {
     if (current && categories.some((category) => category.name === current)) {
       recurringCategory.value = current;
     }
+  }
+}
+
+function updateRecurringFields() {
+  if (!recurringFrequency || !recurringDayOfWeek || !recurringDayOfMonth) return;
+  const weekly = recurringFrequency.value === "weekly";
+  recurringDayOfWeek.closest("label")?.classList.toggle("hidden", !weekly);
+  recurringDayOfMonth.closest("label")?.classList.toggle("hidden", weekly);
+}
+
+function getBudgetWarnings(totals) {
+  return categories.reduce((warnings, category) => {
+    if (!category.budget) return warnings;
+    const spent = totals[category.name] || 0;
+    const percent = Math.round((spent / category.budget) * 100);
+    if (percent >= 100) {
+      warnings.push(`You’ve exceeded your ${category.name} budget by ${formatMoney(spent - category.budget)}.`);
+    } else if (percent >= 90) {
+      warnings.push(`You’ve used ${percent}% of your ${category.name} budget.`);
+    }
+    return warnings;
+  }, []);
+}
+
+function renderBudgetWarnings(totals) {
+  const warningEl = document.querySelector("#budgetWarning");
+  if (!warningEl) return;
+  const warnings = getBudgetWarnings(totals);
+  if (warnings.length) {
+    warningEl.classList.remove("hidden");
+    warningEl.textContent = warnings[0];
+    return;
+  }
+  const totalBudget = sum(categories.map((category) => category.budget));
+  if (state.allowance > 0 && totalBudget > state.allowance) {
+    warningEl.classList.remove("hidden");
+    warningEl.textContent = "Warning: total category budgets exceed your allowance.";
+    return;
+  }
+  warningEl.classList.add("hidden");
+}
+
+function calculateHealthScore(totals, totalSpent) {
+  const spendingScore = state.allowance > 0
+    ? Math.max(0, Math.min(100, Math.round(100 - Math.min(100, (totalSpent / state.allowance) * 100) * 0.6)))
+    : 60;
+  const savingsScore = state.goal.target > 0
+    ? Math.min(100, Math.round((state.goal.saved / state.goal.target) * 100))
+    : 50;
+  const budgetCategories = categories.filter((category) => category.budget > 0);
+  const disciplineScore = budgetCategories.length
+    ? Math.round(
+        (budgetCategories.filter((category) => (totals[category.name] || 0) <= category.budget).length / budgetCategories.length) * 100,
+      )
+    : 75;
+  return Math.round(spendingScore * 0.4 + savingsScore * 0.35 + disciplineScore * 0.25);
+}
+
+function healthRating(score) {
+  if (score >= 80) return "Good";
+  if (score >= 55) return "Fair";
+  return "Poor";
+}
+
+function renderHealthScore(totals, totalSpent) {
+  const score = calculateHealthScore(totals, totalSpent);
+  const label = healthRating(score);
+  const healthEl = document.querySelector("#healthScore");
+  const captionEl = document.querySelector("#healthCaption");
+  if (healthEl) healthEl.textContent = `${score}/100`;
+  if (captionEl) captionEl.textContent = `${label} financial health`; 
+}
+
+function maybeShowBudgetNotification(expense, totals) {
+  if (!expense || !expense.category) return;
+  const category = categories.find((item) => item.name === expense.category);
+  if (!category || !category.budget) return;
+  const spent = totals[category.name] || 0;
+  const percent = Math.round((spent / category.budget) * 100);
+  if (percent >= 90) {
+    showNotification(`You’ve used ${percent}% of your ${category.name} budget.`, "warning");
   }
 }
 
