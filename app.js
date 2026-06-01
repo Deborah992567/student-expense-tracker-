@@ -48,6 +48,7 @@ const defaultState = {
   country: "United States",
   analyticsStartDate: daysAgo(30),
   analyticsEndDate: new Date().toISOString().slice(0, 10),
+  recurringExpenses: [],
   savingsCurrencies: [
     { currency: "USD", amount: 0 },
   ],
