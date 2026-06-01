@@ -70,6 +70,7 @@ let authMode = "login";
 let authToken = localStorage.getItem(tokenKey);
 let pendingVerificationEmail = localStorage.getItem(verificationEmailKey) || "";
 let editingExpenseId = null;
+let editingRecurringId = null;
 const sessionMessageElem = document.querySelector("#sessionMessage");
 
 const authScreen = document.querySelector("#authScreen");
@@ -223,6 +224,9 @@ async function init() {
     recurringFrequency.addEventListener("change", updateRecurringFields);
   }
   updateRecurringFields();
+  if (recurringList) {
+    recurringList.addEventListener("click", handleRecurringItemClick);
+  }
   document.querySelector("#refreshInsights").addEventListener("click", renderInsights);
 
   // Expense list actions (edit/delete) via delegation
