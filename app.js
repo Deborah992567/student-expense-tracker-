@@ -136,6 +136,13 @@ const recurringCategory = document.querySelector("#recurringCategory");
 const recurringFrequency = document.querySelector("#recurringFrequency");
 const recurringDayOfMonth = document.querySelector("#recurringDayOfMonth");
 const recurringDayOfWeek = document.querySelector("#recurringDayOfWeek");
+const adminNavLink = document.querySelector("#adminNavLink");
+const adminSection = document.querySelector("#admin");
+const adminTotalUsers = document.querySelector("#adminTotalUsers");
+const adminVerifiedUsers = document.querySelector("#adminVerifiedUsers");
+const adminTotalExpenses = document.querySelector("#adminTotalExpenses");
+const adminTotalSpend = document.querySelector("#adminTotalSpend");
+const adminTopCategories = document.querySelector("#adminTopCategories");
 
 // Filter and pagination elements
 const filterSearch = document.querySelector("#filterSearch");
@@ -2006,6 +2013,7 @@ async function hydrateFromApi() {
     document.querySelector("#goalTarget").value = state.goal.target;
     document.querySelector("#goalSaved").value = state.goal.saved;
     document.querySelector("#accountLabel").textContent = data.profile.email;
+    renderAdminControls(data.profile.role === "admin");
     persist();
 
     // Sync range buttons and custom date inputs with backend data
@@ -2023,6 +2031,43 @@ async function hydrateFromApi() {
       authMessage.textContent = "Verify your email before opening your dashboard.";
       renderAuthMode();
       showAuth();
+    }
+  }
+}
+
+function renderAdminControls(isAdmin) {
+  if (isAdmin) {
+    adminNavLink.classList.remove("hidden");
+    adminSection.classList.remove("hidden");
+    fetchAdminDashboard();
+    return;
+  }
+
+  if (adminNavLink) {
+    adminNavLink.classList.add("hidden");
+  }
+  if (adminSection) {
+    adminSection.classList.add("hidden");
+  }
+}
+
+async function fetchAdminDashboard() {
+  if (!apiOnline) return;
+  try {
+    const data = await apiRequest("/api/admin/dashboard");
+    adminTotalUsers.textContent = data.total_users.toString();
+    adminVerifiedUsers.textContent = data.verified_users.toString();
+    adminTotalExpenses.textContent = data.total_expenses.toString();
+    adminTotalSpend.textContent = formatMoney(data.total_spend, state.country);
+    adminTopCategories.innerHTML = data.top_categories
+      .map(
+        (category) =>
+          `<div class="bar-item"><strong>${escapeHtml(category.category)}</strong><span>${formatMoney(category.total_amount, state.country)}</span></div>`
+      )
+      .join("");
+  } catch (err) {
+    if (err.status === 403) {
+      renderAdminControls(false);
     }
   }
 }

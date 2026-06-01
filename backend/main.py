@@ -36,6 +36,7 @@ from backend.auth import (
     revoke_all_user_tokens,
     check_api_rate_limit,
     invalidate_state_cache,
+    require_role,
     get_redis,
 )
 from backend.config import get_settings
@@ -187,6 +188,7 @@ def signup(payload: schemas.SignupRequest, background_tasks: BackgroundTasks, db
         gender=payload.gender,
         email=email,
         password_hash=hash_password(payload.password),
+        role="admin" if db.scalar(select(func.count(models.User.id))) == 0 else "student",
     )
     db.add(user)
     db.flush()
@@ -857,6 +859,46 @@ def get_category_analytics(
     results = db.execute(query).all()
     
     return [{"category": r[0], "total_amount": r[1], "transaction_count": r[2]} for r in results]
+
+
+@app.get("/api/admin/dashboard", response_model=schemas.AdminDashboardRead)
+def get_admin_dashboard(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    require_role(user, "admin")
+    check_api_rate_limit(user.id)
+
+    total_users = db.scalar(select(func.count(models.User.id))) or 0
+    verified_users = db.scalar(select(func.count(models.User.id)).where(models.User.email_verified == True)) or 0
+    total_expenses = db.scalar(select(func.count(models.Expense.id)).where(models.Expense.deleted == False)) or 0
+    total_spend = db.scalar(select(func.coalesce(func.sum(models.Expense.amount), 0)).where(models.Expense.deleted == False)) or Decimal("0")
+
+    category_query = (
+        select(
+            models.Expense.category,
+            func.sum(models.Expense.amount).label("total_amount"),
+            func.count(models.Expense.id).label("transaction_count")
+        )
+        .where(models.Expense.deleted == False)
+        .group_by(models.Expense.category)
+        .order_by(func.sum(models.Expense.amount).desc())
+        .limit(5)
+    )
+    category_results = db.execute(category_query).all()
+
+    top_categories = [
+        {"category": r[0], "total_amount": r[1], "transaction_count": r[2]}
+        for r in category_results
+    ]
+
+    return {
+        "total_users": total_users,
+        "verified_users": verified_users,
+        "total_expenses": total_expenses,
+        "total_spend": total_spend,
+        "top_categories": top_categories,
+    }
 
 @app.get("/api/analytics/total-balance", response_model=schemas.TotalBalanceRead)
 def get_total_converted_balance(

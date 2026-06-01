@@ -95,6 +95,7 @@
           <a href="#budgets" class="nav-link">Budgets</a>
           <a href="#receipt" class="nav-link">Receipt Scan</a>
           <a href="#goals" class="nav-link">Savings</a>
+          <a href="#admin" class="nav-link hidden" id="adminNavLink">Admin</a>
           <a href="#recycle" class="nav-link">Recycle Bin</a>
         </nav>
 
@@ -333,6 +334,34 @@
             <div id="recycleList" class="expense-list"></div>
             <div id="recycleHint" class="goal-formula" style="margin-top:10px">Items in the recycle bin can be restored or permanently deleted.</div>
           </div>
+        </section>
+
+        <section class="panel admin-panel hidden" id="admin">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Admin dashboard</p>
+              <h2>Platform analytics</h2>
+            </div>
+          </div>
+          <div class="admin-grid">
+            <article class="metric">
+              <span>Total users</span>
+              <strong id="adminTotalUsers">0</strong>
+            </article>
+            <article class="metric">
+              <span>Verified users</span>
+              <strong id="adminVerifiedUsers">0</strong>
+            </article>
+            <article class="metric">
+              <span>Total expenses</span>
+              <strong id="adminTotalExpenses">0</strong>
+            </article>
+            <article class="metric">
+              <span>Total spend</span>
+              <strong id="adminTotalSpend">$0</strong>
+            </article>
+          </div>
+          <div id="adminTopCategories" class="bar-list"></div>
         </section>
 
         <section class="content-grid">
