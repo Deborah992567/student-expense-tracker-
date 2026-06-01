@@ -1208,7 +1208,7 @@ async function fetchRecurringExpenses() {
 
 function renderRecurringExpenses() {
   if (!recurringList) return;
-  const items = (state.recurringExpenses || []).slice(0, 5);
+  const items = state.recurringExpenses || [];
   if (!items.length) {
     recurringList.innerHTML = `<div class="expense-item"><strong>No recurring expenses set.</strong><span>Create a weekly, monthly, or yearly payment to stay on track.</span></div>`;
     return;
@@ -1221,10 +1221,20 @@ function renderRecurringExpenses() {
         : item.frequency === "monthly"
           ? `Day ${item.day_of_month} of each month`
           : `Day ${item.day_of_month} of each year`;
+      const lastGenerated = item.last_generated_at
+        ? `<span class="muted">Last run ${new Date(item.last_generated_at).toLocaleDateString()}</span>`
+        : "";
       return `
         <article class="expense-item">
+          <div>
           <strong>${item.name}<span>${formatMoney(item.amount)}</span></strong>
           <span>${item.category} · ${schedule}</span>
+          ${lastGenerated}
+          </div>
+          <div class="recurring-actions">
+            <button class="secondary-button" type="button" data-recurring-edit="${item.id}">Edit</button>
+            <button class="danger-button" type="button" data-recurring-delete="${item.id}">Delete</button>
+          </div>
         </article>
       `;
     })
