@@ -1182,9 +1182,11 @@ function renderCategoryOptions() {
     const current = recurringCategory.value;
     recurringCategory.innerHTML = categories
       .map((category) => `<option value="${category.name}">${category.name}</option>`)
-      showNotification(`Recurring expense "${savedName}" updated.`, "success");
-      recurringForm.querySelector("button[type=submit]").textContent = "Create recurring expense";
-
+      .join("");
+    if (current && categories.some((category) => category.name === current)) {
+      recurringCategory.value = current;
+    }
+  }
 async function fetchRecurringExpenses() {
   if (!apiOnline) return;
   try {
