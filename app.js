@@ -582,12 +582,90 @@ async function handleRecurringSubmit(event) {
     day_of_month: dayOfMonth,
   };
 
-  const recurring = await createRecurringExpense(payload);
+  let recurring;
+  if (editingRecurringId) {
+    recurring = await updateRecurringExpense(editingRecurringId, payload);
+  } else {
+    recurring = await createRecurringExpense(payload);
+  }
   if (recurring) {
+    const savedName = recurring.name || category;
     recurringForm.reset();
     recurringFrequency.value = "monthly";
     updateRecurringFields();
-    showNotification(`Recurring expense for ${category} has been scheduled.`, "success");
+    showNotification(
+      editingRecurringId
+        ? `Recurring expense "${savedName}" updated.`
+        : `Recurring expense for ${savedName} has been scheduled.`,
+      "success",
+    );
+    editingRecurringId = null;
+    await fetchRecurringExpenses();
+    renderRecurringExpenses();
+  }
+}
+
+async function updateRecurringExpense(id, payload) {
+  if (!apiOnline) return null;
+  try {
+    const saved = await apiRequest(`/api/recurring-expenses/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+    return normalizeRecurringExpense(saved);
+  } catch {
+    apiOnline = false;
+    return null;
+  }
+}
+
+async function deleteRecurringExpense(id) {
+  if (!apiOnline) return false;
+  try {
+    await apiRequest(`/api/recurring-expenses/${id}`, {
+      method: "DELETE",
+    });
+    return true;
+  } catch {
+    apiOnline = false;
+    return false;
+  }
+}
+
+function handleRecurringItemClick(event) {
+  const editButton = event.target.closest("button[data-recurring-edit]");
+  const deleteButton = event.target.closest("button[data-recurring-delete]");
+  if (editButton) {
+    const recurringId = Number(editButton.dataset.recurringEdit);
+    const recurring = state.recurringExpenses?.find((item) => item.id === recurringId);
+    if (!recurring) return;
+    editingRecurringId = recurringId;
+    recurringName.value = recurring.name;
+    recurringAmount.value = recurring.amount;
+    recurringCategory.value = recurring.category;
+    recurringFrequency.value = recurring.frequency;
+    recurringDayOfMonth.value = recurring.day_of_month || 1;
+    recurringDayOfWeek.value = recurring.day_of_week || 0;
+    updateRecurringFields();
+    showNotification("Editing recurring expense. Save to apply changes.", "info");
+    return;
+  }
+  if (deleteButton) {
+    const recurringId = Number(deleteButton.dataset.recurringDelete);
+    handleDeleteRecurringExpense(recurringId);
+    return;
+  }
+}
+
+async function handleDeleteRecurringExpense(id) {
+  if (!window.confirm("Delete this recurring expense? This cannot be undone.")) return;
+  const success = await deleteRecurringExpense(id);
+  if (success) {
+    state.recurringExpenses = state.recurringExpenses.filter((item) => item.id !== id);
+    renderRecurringExpenses();
+    showNotification("Recurring expense removed.", "success");
+  } else {
+    showNotification("Could not delete recurring expense.", "error");
   }
 }
 
