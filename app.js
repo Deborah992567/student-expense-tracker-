@@ -27,7 +27,27 @@ const defaultCategories = [
   { name: "Books", budget: 0, color: "#7c3aed" },
   { name: "Rent", budget: 0, color: "#159947" },
   { name: "Social", budget: 0, color: "#c18400" },
+  { name: "Entertainment", budget: 0, color: "#fb923c" },
   { name: "Health", budget: 0, color: "#d0342c" },
+  { name: "School fees", budget: 0, color: "#0b7285" },
+  { name: "Textbooks", budget: 0, color: "#5b21b6" },
+  { name: "Projects", budget: 0, color: "#7c3aed" },
+  { name: "Data/Bills", budget: 0, color: "#0f766e" },
+];
+
+const merchantCategoryRules = [
+  { pattern: /\buber\b/i, category: "Transport" },
+  { pattern: /\blyft\b/i, category: "Transport" },
+  { pattern: /\btaxi\b/i, category: "Transport" },
+  { pattern: /\bmetro\b|\btrain\b|\bbus\b/i, category: "Transport" },
+  { pattern: /\bnetflix\b/i, category: "Entertainment" },
+  { pattern: /\bprime video\b|\bdisney\b|\bspotify\b|\bspotify\b/i, category: "Entertainment" },
+  { pattern: /\bmtn\b|\bglo\b|\bairtel\b|\b9mobile\b|\bmobile\b/i, category: "Data/Bills" },
+  { pattern: /\btuition\b|\bdepartmental\b|\bterm fee\b|\bschool fees\b|\bfees\b/i, category: "School fees" },
+  { pattern: /\bbookstore\b|\btextbook\b|\bcourse material\b/i, category: "Textbooks" },
+  { pattern: /\bproject\b|\bresearch\b|\bgroup work\b|\blab fee\b/i, category: "Projects" },
+  { pattern: /\bgrocer|\bmarket\b|\bcaf\b|\bcoffee\b|\bdining\b|\brestaurant\b/i, category: "Food" },
+  { pattern: /\bclinic\b|\bpharmacy\b|\bhealth\b|\bmedical\b/i, category: "Health" },
 ];
 
 const apiBase = getApiBase();
@@ -52,6 +72,7 @@ const defaultState = {
   savingsCurrencies: [
     { currency: "USD", amount: 0 },
   ],
+  totalConvertedBalance: null,
 };
 
 let categories = structuredClone(defaultCategories);
@@ -1809,17 +1830,47 @@ function parseReceiptText(text, fileName) {
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean);
-  const merchant = lines.find((line) => /[a-z]/i.test(line) && !/\b(total|visa|cash|change|tax)\b/i.test(line));
+  const merchant = lines.find((line) => merchantCategoryRules.some((rule) => rule.pattern.test(line)))
+    || lines.find((line) => /[a-z]/i.test(line) && !/\b(total|visa|cash|change|tax)\b/i.test(line));
   const totalLine = lines.find((line) => /\b(total|amount|balance|due)\b/i.test(line));
   const amount = extractReceiptAmount(totalLine || text);
-  const category = detectCategory(normalized);
+  const date = extractReceiptDate(text) || new Date().toISOString().slice(0, 10);
+  const category = detectCategory(`${normalized} ${merchant || ""}`);
 
   return {
     name: merchant ? titleCase(merchant.slice(0, 34)) : receiptMerchantName(normalized, category.name),
     amount,
     category: category.name,
-    date: new Date().toISOString().slice(0, 10),
+    date,
   };
+}
+
+function extractReceiptDate(text) {
+  const cleaned = text.replace(/\r/g, "\n").toLowerCase();
+  const datePatterns = [
+    /(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/, // yyyy-mm-dd
+    /(\d{1,2})[-\/](\d{1,2})[-\/](\d{2,4})/, // dd/mm/yyyy or mm/dd/yyyy
+  ];
+
+  for (const pattern of datePatterns) {
+    const match = cleaned.match(pattern);
+    if (!match) continue;
+    let year = match[1];
+    let month = match[2];
+    let day = match[3];
+
+    if (year.length === 2) {
+      year = `20${year}`;
+    }
+    if (pattern === datePatterns[1] && Number(month) > 12) {
+      [day, month] = [month, day];
+    }
+    const iso = `${year.padStart(4, "0")}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    if (!Number.isNaN(new Date(iso).getTime())) {
+      return iso;
+    }
+  }
+  return null;
 }
 
 function simulateReceiptScan(fileName) {
@@ -1836,6 +1887,12 @@ function simulateReceiptScan(fileName) {
 }
 
 function detectCategory(text) {
+  const normalizedText = text.toLowerCase();
+  const match = merchantCategoryRules.find((rule) => rule.pattern.test(normalizedText));
+  if (match) {
+    const direct = categories.find((category) => category.name.toLowerCase() === match.category.toLowerCase());
+    if (direct) return direct;
+  }
   const directMatch = categories.find((category) => text.includes(category.name.toLowerCase()));
   if (directMatch) return directMatch;
 
@@ -1859,6 +1916,10 @@ function extractReceiptAmount(text) {
 }
 
 function receiptMerchantName(fileName, category) {
+  if (fileName.includes("netflix")) return "Netflix";
+  if (fileName.includes("uber")) return "Uber";
+  if (fileName.includes("taxi")) return "Taxi";
+  if (fileName.includes("mtn")) return "MTN recharge";
   if (fileName.includes("cafe")) return "Campus Cafe";
   if (fileName.includes("book")) return "Bookstore";
   if (fileName.includes("bus") || fileName.includes("uber")) return "Transport receipt";
