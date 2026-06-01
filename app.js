@@ -1187,6 +1187,7 @@ function renderCategoryOptions() {
       recurringCategory.value = current;
     }
   }
+}
 async function fetchRecurringExpenses() {
   if (!apiOnline) return;
   try {
