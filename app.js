@@ -1045,6 +1045,7 @@ async function handleReceiptUpload(event) {
   document.querySelector("#scanResult").innerHTML = `
     <strong>${scannedExpense.name} · ${formatMoney(scannedExpense.amount)}</strong>
     <span>${scannedExpense.category} detected from ${scannedExpense.source}, dated ${formatDate(scannedExpense.date)}.</span>
+    <span>Click add scanned expense to save it automatically.</span>
   `;
   addScannedExpense.disabled = false;
 }
