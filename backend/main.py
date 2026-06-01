@@ -43,6 +43,7 @@ from backend.email_verification import (
     EmailDeliveryError,
     create_verification_code,
     send_email_with_attachment,
+    send_plain_email,
     send_verification_email,
     hash_verification_code,
     latest_pending_code,
@@ -412,6 +413,7 @@ def update_profile(
 @app.post("/api/expenses", response_model=schemas.ExpenseRead, status_code=status.HTTP_201_CREATED)
 def create_expense(
     payload: schemas.ExpenseCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ) -> models.Expense:
@@ -422,10 +424,48 @@ def create_expense(
     db.add(expense)
     db.commit()
     db.refresh(expense)
+    alert_category = db.scalar(
+        select(models.Category)
+        .where(models.Category.user_id == user.id, models.Category.name == payload.category)
+    )
+    if alert_category and alert_category.budget and alert_category.budget > 0:
+        category_spent = db.scalar(
+            select(func.coalesce(func.sum(models.Expense.amount), 0))
+            .where(
+                models.Expense.user_id == user.id,
+                models.Expense.category == payload.category,
+                models.Expense.deleted == False,
+            )
+        )
+        if category_spent is None:
+            category_spent = 0
+        threshold = Decimal("0.9") * alert_category.budget
+        if category_spent >= threshold:
+            background_tasks.add_task(
+                send_budget_limit_email,
+                user.email,
+                user.first_name or user.name,
+                alert_category.name,
+                float(category_spent / alert_category.budget * 100),
+                float(alert_category.budget),
+            )
     logger.info("Expense created: expense_id=%s, user_id=%s, name=%s, amount=%s", 
                 expense.id, user.id, payload.name, payload.amount)
     invalidate_state_cache(user.id)
     return expense
+
+
+def send_budget_limit_email(email: str, recipient_name: str, category: str, percent: float, budget: float) -> None:
+    subject = f"Budget alert: {category} is nearing your limit"
+    body = (
+        f"Hi {recipient_name},\n\n"
+        f"You have used {percent:.0f}% of your budget for {category}.\n"
+        f"Current budget: {budget:.2f}\n\n"
+        "If you want, adjust your category limit or review spending to stay on track.\n\n"
+        "Thanks,\n"
+        "The StudentSpend team"
+    )
+    send_plain_email(email, subject, body)
 
 
 @app.patch("/api/categories/{category_id}", response_model=schemas.CategoryRead)

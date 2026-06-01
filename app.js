@@ -220,6 +220,7 @@ async function init() {
   if (recurringFrequency) {
     recurringFrequency.addEventListener("change", updateRecurringFields);
   }
+  updateRecurringFields();
   document.querySelector("#refreshInsights").addEventListener("click", renderInsights);
 
   // Expense list actions (edit/delete) via delegation
@@ -546,6 +547,7 @@ async function addExpenseAndRender() {
   categorySelect.value = expense.category;
   persist();
   await autoUpdateGoalSavings();
+  maybeShowBudgetNotification(expense, getCategoryTotals(getFilteredExpenses()));
   render();
 }
 

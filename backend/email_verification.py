@@ -101,6 +101,35 @@ def send_verification_email(email: str, code: str) -> None:
         raise EmailDeliveryError("Verification email could not be sent") from exc
 
 
+def send_plain_email(email: str, subject: str, body: str) -> None:
+    settings = get_settings()
+
+    if not settings.smtp_host:
+        logger.info("SMTP not configured - plain email for %s: %s", email, subject)
+        print(f"[StudentSpend] Email to {email}: {subject}\n{body}")
+        return
+
+    message = EmailMessage()
+    message["Subject"] = subject
+    message["From"] = settings.smtp_from_email
+    message["To"] = email
+    message.set_content(body)
+
+    smtp_class = smtplib.SMTP_SSL if settings.smtp_use_ssl else smtplib.SMTP
+    try:
+        logger.debug("Sending plain email to %s via %s:%d", email, settings.smtp_host, settings.smtp_port)
+        with smtp_class(settings.smtp_host, settings.smtp_port, timeout=settings.smtp_timeout) as smtp:
+            if settings.smtp_use_tls and not settings.smtp_use_ssl:
+                smtp.starttls()
+            if settings.smtp_username:
+                smtp.login(settings.smtp_username, settings.smtp_password)
+            smtp.send_message(message)
+        logger.info("Plain email sent successfully to %s", email)
+    except (OSError, smtplib.SMTPException) as exc:
+        logger.error("Failed to send plain email to %s: %s", email, str(exc))
+        raise EmailDeliveryError("Email could not be sent") from exc
+
+
 def send_email_with_attachment(
     email: str,
     subject: str,
