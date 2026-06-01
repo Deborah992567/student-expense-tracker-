@@ -179,6 +179,11 @@
             <strong id="topCategory">None</strong>
             <small id="topCategoryCaption">Add expenses to learn</small>
           </article>
+          <article class="metric">
+            <span>Financial health</span>
+            <strong id="healthScore">0</strong>
+            <small id="healthCaption">Track budget discipline</small>
+          </article>
         </section>
 
         <div id="sessionMessage" class="session-message hidden" role="status" aria-live="polite"></div>
@@ -324,6 +329,60 @@
               </div>
             </div>
             <div id="budgetList" class="budget-list"></div>
+          </div>
+
+          <div class="panel" id="recurring">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Recurring expenses</p>
+                <h2>Save on repeat costs</h2>
+              </div>
+            </div>
+            <form id="recurringForm" class="stacked-form">
+              <div class="form-row">
+                <label>
+                  Name
+                  <input id="recurringName" type="text" placeholder="Netflix" required />
+                </label>
+                <label>
+                  Amount
+                  <input id="recurringAmount" type="number" min="0.01" step="0.01" placeholder="12.99" required />
+                </label>
+              </div>
+              <div class="form-row">
+                <label>
+                  Category
+                  <select id="recurringCategory"></select>
+                </label>
+                <label>
+                  Frequency
+                  <select id="recurringFrequency">
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="yearly">Yearly</option>
+                  </select>
+                </label>
+              </div>
+              <div class="form-row recurring-advanced-fields">
+                <label id="recurringDayOfWeekLabel">
+                  Day of week
+                  <select id="recurringDayOfWeek">
+                    <option value="0">Monday</option>
+                    <option value="1">Tuesday</option>
+                    <option value="2">Wednesday</option>
+                    <option value="3">Thursday</option>
+                    <option value="4">Friday</option>
+                    <option value="5">Saturday</option>
+                    <option value="6">Sunday</option>
+                  </select>
+                </label>
+                <label id="recurringDayOfMonthLabel" class="hidden">
+                  Day of month
+                  <input id="recurringDayOfMonth" type="number" min="1" max="31" value="1" />
+                </label>
+              </div>
+              <button class="primary-button" type="submit">Create recurring expense</button>
+            </form>
           </div>
 
           <div class="panel" id="receipt">

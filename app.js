@@ -105,6 +105,13 @@ const allowanceInput = document.querySelector("#allowanceInput");
 const receiptUpload = document.querySelector("#receiptUpload");
 const addScannedExpense = document.querySelector("#addScannedExpense");
 const themeKey = "studentExpenseTheme";
+const recurringForm = document.querySelector("#recurringForm");
+const recurringName = document.querySelector("#recurringName");
+const recurringAmount = document.querySelector("#recurringAmount");
+const recurringCategory = document.querySelector("#recurringCategory");
+const recurringFrequency = document.querySelector("#recurringFrequency");
+const recurringDayOfMonth = document.querySelector("#recurringDayOfMonth");
+const recurringDayOfWeek = document.querySelector("#recurringDayOfWeek");
 
 // Filter and pagination elements
 const filterSearch = document.querySelector("#filterSearch");
@@ -207,6 +214,12 @@ async function init() {
   allowanceInput.addEventListener("input", handleAllowanceChange);
   receiptUpload.addEventListener("change", handleReceiptUpload);
   addScannedExpense.addEventListener("click", handleScannedExpense);
+  if (recurringForm) {
+    recurringForm.addEventListener("submit", handleRecurringSubmit);
+  }
+  if (recurringFrequency) {
+    recurringFrequency.addEventListener("change", updateRecurringFields);
+  }
   document.querySelector("#refreshInsights").addEventListener("click", renderInsights);
 
   // Expense list actions (edit/delete) via delegation
@@ -1024,6 +1037,8 @@ function render() {
     ? `${Math.round((top[1] / Math.max(totalSpent, 1)) * 100)}% of ${state.range} spending`
     : "Add expenses to learn";
 
+  renderHealthScore(totals, totalSpent);
+
   renderCategoryBars(totals, totalSpent);
   renderExpenses(filtered);
   renderBudgets(totals);
@@ -1039,6 +1054,15 @@ function renderCategoryOptions() {
     .join("");
   if (selected && categories.some((category) => category.name === selected)) {
     categorySelect.value = selected;
+  }
+  if (recurringCategory) {
+    const current = recurringCategory.value;
+    recurringCategory.innerHTML = categories
+      .map((category) => `<option value="${category.name}">${category.name}</option>`)
+      .join("");
+    if (current && categories.some((category) => category.name === current)) {
+      recurringCategory.value = current;
+    }
   }
 }
 
