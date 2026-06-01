@@ -225,7 +225,7 @@ async function init() {
   }
   updateRecurringFields();
   if (recurringList) {
-    recurringList.addEventListener("click", handleRecurringItemClick);
+  const items = state.recurringExpenses || [];
   }
   document.querySelector("#refreshInsights").addEventListener("click", renderInsights);
 
@@ -238,12 +238,20 @@ async function init() {
 
   // Show/hide recycle panel on hash change
   window.addEventListener("hashchange", handleHashChange);
+      const lastGenerated = item.last_generated_at
+        ? `<span class="muted">Last run ${new Date(item.last_generated_at).toLocaleDateString()}</span>`
+        : "";
   handleHashChange();
 
   // Analytics date filtering delegation
   const insightsList = document.querySelector("#insightsList");
   if (insightsList) {
+            ${lastGenerated}
     insightsList.addEventListener("click", async (e) => {
+          <div class="recurring-actions">
+            <button class="secondary-button" type="button" data-recurring-edit="${item.id}">Edit</button>
+            <button class="danger-button" type="button" data-recurring-delete="${item.id}">Delete</button>
+          </div>
       if (e.target.id === "applyAnalyticsDates") {
         state.analyticsStartDate = document.querySelector("#analyticsStartDate")?.value;
         state.analyticsEndDate = document.querySelector("#analyticsEndDate")?.value;
