@@ -1051,16 +1051,29 @@ async function handleReceiptUpload(event) {
 
 async function handleScannedExpense() {
   if (!scannedExpense) return;
-  
-  // Populate the form instead of direct save to allow review
-  document.querySelector("#expenseName").value = scannedExpense.name;
-  document.querySelector("#expenseAmount").value = scannedExpense.amount;
-  document.querySelector("#expenseCategory").value = scannedExpense.category;
-  document.querySelector("#expenseDate").value = scannedExpense.date;
-  
-  showNotification("Form populated from receipt. Please review and save.", "info");
-  window.scrollTo({ top: 0, behavior: "smooth" });
-  
+  try {
+    const created = await createExpense({
+      name: scannedExpense.name,
+      amount: scannedExpense.amount,
+      category: scannedExpense.category,
+      date: scannedExpense.date,
+    });
+    if (created) {
+      state.expenses.unshift(created);
+      persist();
+      render();
+      showNotification(`Scanned receipt added as ${created.category} expense.`, "success");
+    } else {
+      throw new Error("Add scanned expense failed");
+    }
+  } catch (error) {
+    showNotification("Auto-add failed. Please review the receipt values manually.", "warning");
+    document.querySelector("#expenseName").value = scannedExpense.name;
+    document.querySelector("#expenseAmount").value = scannedExpense.amount;
+    document.querySelector("#expenseCategory").value = scannedExpense.category;
+    document.querySelector("#expenseDate").value = scannedExpense.date;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
   scannedExpense = null;
   addScannedExpense.disabled = true;
   receiptUpload.value = "";
@@ -1541,6 +1554,26 @@ function renderCurrencyControls() {
     totalConvertedEl.classList.remove("hidden");
   } else if (totalConvertedEl) {
     totalConvertedEl.classList.add("hidden");
+  }
+}
+
+async function fetchAnalytics() {
+  if (!apiOnline) return;
+  try {
+    const query = new URLSearchParams();
+    if (state.analyticsStartDate) query.set("start_date", state.analyticsStartDate);
+    if (state.analyticsEndDate) query.set("end_date", state.analyticsEndDate);
+    const categoryAnalytics = await apiRequest(`/api/analytics/categories?${query.toString()}`);
+    state.categoryAnalytics = Array.isArray(categoryAnalytics) ? categoryAnalytics : [];
+  } catch {
+    state.categoryAnalytics = [];
+  }
+
+  try {
+    const totalBalance = await apiRequest("/api/analytics/total-balance");
+    state.totalConvertedBalance = totalBalance || null;
+  } catch {
+    state.totalConvertedBalance = null;
   }
 }
 
