@@ -551,6 +551,40 @@ async function addExpenseAndRender() {
   render();
 }
 
+async function handleRecurringSubmit(event) {
+  event.preventDefault();
+  if (!recurringForm || !recurringName || !recurringAmount || !recurringCategory || !recurringFrequency) return;
+
+  const name = recurringName.value.trim();
+  const amount = Number(recurringAmount.value);
+  const category = recurringCategory.value || categories[0]?.name || "Other";
+  const frequency = recurringFrequency.value;
+  const dayOfWeek = frequency === "weekly" ? Number(recurringDayOfWeek.value) : undefined;
+  const dayOfMonth = frequency !== "weekly" ? Number(recurringDayOfMonth.value) : undefined;
+
+  if (!name || !amount || !category) {
+    showNotification("Please provide a name, amount, and category for the recurring expense.", "warning");
+    return;
+  }
+
+  const payload = {
+    name,
+    amount,
+    category,
+    frequency,
+    day_of_week: dayOfWeek,
+    day_of_month: dayOfMonth,
+  };
+
+  const recurring = await createRecurringExpense(payload);
+  if (recurring) {
+    recurringForm.reset();
+    recurringFrequency.value = "monthly";
+    updateRecurringFields();
+    showNotification(`Recurring expense for ${category} has been scheduled.`, "success");
+  }
+}
+
 async function updateExpense(id, payload) {
   if (!apiOnline) return { ...payload, id };
   try {
