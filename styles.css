@@ -604,6 +604,18 @@ input[readonly] {
   gap: 12px;
 }
 
+.recurring-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.recurring-actions button {
+  width: auto;
+  min-width: 84px;
+}
+
 .insight,
 .expense-item,
 .budget-item {
