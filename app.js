@@ -1204,7 +1204,8 @@ function render() {
 
   renderRecurringExpenses();
   renderCategoryBars(totals, totalSpent);
-  renderExpenses(filtered);
+    renderExpenses(filtered);
+    renderSpendingHeatmap(filtered);
   renderBudgets(totals);
   renderGoal(goalPercent, totalSpent);
   renderCurrencyControls(); // This now includes Total Balance logic via fetchAnalytics calls
@@ -2366,6 +2367,19 @@ async function refreshAccessToken() {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
+    });
+    if (!res.ok) {
+      return false;
+    }
+    const data = await res.json();
+    authToken = data.access_token;
+    localStorage.setItem(tokenKey, authToken);
+    apiOnline = true;
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
 
 function renderSpendingHeatmap(expenses) {
   const heatmap = document.querySelector("#spendingHeatmap");
@@ -2391,19 +2405,6 @@ function renderSpendingHeatmap(expenses) {
       `;
     })
     .join("");
-}
-    });
-    if (!res.ok) {
-      return false;
-    }
-    const data = await res.json();
-    authToken = data.access_token;
-    localStorage.setItem(tokenKey, authToken);
-    apiOnline = true;
-    return true;
-  } catch (err) {
-    return false;
-  }
 }
 
 function normalizeCategory(category) {
