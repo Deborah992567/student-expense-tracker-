@@ -11,7 +11,8 @@ import urllib.request
 if __package__ in {None, ""}:
     sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request, Response, status, Query, Request
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request, Response, status, Query
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.encoders import jsonable_encoder
 from redis.exceptions import RedisError
@@ -55,6 +56,7 @@ from backend.seed import seed_user_defaults
 setup_logging()
 
 app = FastAPI(title="StudentSpend API")
+app.add_middleware(GZipMiddleware, minimum_size=500)
 settings = get_settings()
 FRONTEND_DIR = Path(__file__).resolve().parent.parent
 logger = get_logger(__name__)
@@ -113,6 +115,25 @@ async def log_requests(request: Request, call_next):
         raise
 
 
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data:; "
+        "connect-src 'self' http://127.0.0.1:8003; "
+        "font-src 'self';"
+    )
+    return response
+
+
 @app.on_event("startup")
 def startup() -> None:
     logger.info("Starting StudentSpend API server...")
@@ -131,7 +152,10 @@ def health() -> dict[str, str]:
 
 @app.get("/", include_in_schema=False)
 def frontend_index() -> FileResponse:
-    return FileResponse(FRONTEND_DIR / "index.html", headers={"Cache-Control": "no-store"})
+    return FileResponse(
+        FRONTEND_DIR / "index.html",
+        headers={"Cache-Control": "public, max-age=60"},
+    )
 
 
 @app.get("/{asset_name}", include_in_schema=False)
@@ -140,7 +164,10 @@ def frontend_asset(asset_name: str) -> FileResponse:
     if asset_name not in allowed_assets:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
 
-    return FileResponse(FRONTEND_DIR / asset_name, headers={"Cache-Control": "no-store"})
+    return FileResponse(
+        FRONTEND_DIR / asset_name,
+        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+    )
 
 
 @app.post("/api/auth/signup", response_model=schemas.TokenRead, status_code=status.HTTP_201_CREATED)
