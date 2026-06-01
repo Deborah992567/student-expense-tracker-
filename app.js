@@ -238,6 +238,7 @@ async function init() {
   }
   
   document.querySelector("#exportExpenses")?.addEventListener("click", handleExportExpenses);
+  document.querySelector("#emailStatement")?.addEventListener("click", handleEmailStatement);
 
   document.querySelectorAll("[data-range]").forEach((button) => {
     button.addEventListener("click", () => setRange(button.dataset.range));
@@ -563,6 +564,18 @@ async function handleExportExpenses() {
     a.remove();
   } catch (err) {
     showNotification("Failed to export expenses. Please try again.", "error");
+  }
+}
+
+async function handleEmailStatement() {
+  try {
+    const response = await apiRequest("/api/expenses/export/email", {
+      method: "POST",
+      body: JSON.stringify({ email: state.profile.email }),
+    });
+    showNotification(response.message || "Expense statement emailed successfully", "success");
+  } catch (err) {
+    showNotification("Could not send the statement email. Please try again.", "error");
   }
 }
 

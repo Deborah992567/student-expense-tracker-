@@ -660,6 +660,35 @@ def background_send_verification(db: Session, user: models.User, background_task
     background_tasks.add_task(send_verification_email, user.email, code)
     logger.info("Verification email queued for background task: email=%s", user.email)
 
+
+def generate_expense_csv(expenses: list[models.Expense]) -> bytes:
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Date", "Category", "Name", "Amount"])
+
+    for exp in expenses:
+        writer.writerow([exp.date.isoformat(), exp.category, exp.name, str(exp.amount)])
+
+    return output.getvalue().encode("utf-8")
+
+
+def resolve_country_currency(country: str) -> str:
+    mapping = {
+        "united states": "USD",
+        "united kingdom": "GBP",
+        "uk": "GBP",
+        "canada": "CAD",
+        "eurozone": "EUR",
+        "france": "EUR",
+        "germany": "EUR",
+        "spain": "EUR",
+        "italy": "EUR",
+        "india": "INR",
+        "australia": "AUD",
+        "japan": "JPY",
+    }
+    return mapping.get(country.strip().lower(), "USD")
+
 @app.get("/api/expenses/export")
 def export_expenses(
     format: str = Query("csv", pattern="^(csv)$"),
@@ -689,6 +718,50 @@ def export_expenses(
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename=expenses_{datetime.now().strftime('%Y%m%d')}.csv"}
     )
+
+
+@app.post("/api/expenses/export/email", response_model=schemas.MessageRead)
+def email_expense_statement(
+    payload: schemas.ExpenseExportEmailRequest,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    require_verified_email(user)
+    check_api_rate_limit(user.id)
+
+    destination = payload.email or user.email
+    expenses = db.scalars(
+        select(models.Expense)
+        .where(models.Expense.user_id == user.id, models.Expense.deleted == False)
+        .order_by(models.Expense.date.desc())
+    ).all()
+
+    if payload.format != "csv":
+        raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Only csv export is supported currently")
+
+    csv_bytes = generate_expense_csv(expenses)
+    filename = f"student_expenses_{datetime.now().strftime('%Y%m%d')}.csv"
+    subject = "Your StudentSpend expense statement"
+    body = (
+        f"Hello {user.first_name or user.name},\n\n"
+        "Attached is your latest expense statement from StudentSpend.\n\n"
+        "Thank you for using StudentSpend!\n"
+    )
+
+    try:
+        send_email_with_attachment(
+            email=destination,
+            subject=subject,
+            body=body,
+            attachment_bytes=csv_bytes,
+            filename=filename,
+            mime_type="text/csv",
+        )
+    except EmailDeliveryError as exc:
+        logger.error("Statement email failed for user_id=%s: %s", user.id, str(exc))
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Could not send statement email")
+
+    return {"message": f"Statement emailed to {destination}"}
 
 @app.get("/api/analytics/categories", response_model=list[schemas.CategoryAnalytics])
 def get_category_analytics(
@@ -729,7 +802,7 @@ def get_total_converted_balance(
     if not settings or not settings.savings_currencies:
         return {"home_currency": "USD", "total_converted_balance": 0}
 
-    home_curr = settings.country_currency_code() # Helper needed or simple lookup
+    home_curr = resolve_country_currency(settings.country)
     # For brevity, let's assume home currency is based on country.
     # Usually you'd have a mapping.
     
