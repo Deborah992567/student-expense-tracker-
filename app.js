@@ -104,6 +104,7 @@ const dateInput = document.querySelector("#expenseDate");
 const allowanceInput = document.querySelector("#allowanceInput");
 const receiptUpload = document.querySelector("#receiptUpload");
 const addScannedExpense = document.querySelector("#addScannedExpense");
+const recurringList = document.querySelector("#recurringList");
 const themeKey = "studentExpenseTheme";
 const recurringForm = document.querySelector("#recurringForm");
 const recurringName = document.querySelector("#recurringName");
@@ -1076,6 +1077,7 @@ function render() {
   renderHealthScore(totals, totalSpent);
   renderBudgetWarnings(totals);
 
+  renderRecurringExpenses();
   renderCategoryBars(totals, totalSpent);
   renderExpenses(filtered);
   renderBudgets(totals);
@@ -1101,6 +1103,54 @@ function renderCategoryOptions() {
       recurringCategory.value = current;
     }
   }
+}
+
+async function fetchRecurringExpenses() {
+  if (!apiOnline) return;
+  try {
+    const data = await apiRequest("/api/recurring-expenses");
+    state.recurringExpenses = Array.isArray(data) ? data.map(normalizeRecurringExpense) : [];
+  } catch {
+    state.recurringExpenses = [];
+  }
+}
+
+function renderRecurringExpenses() {
+  if (!recurringList) return;
+  const items = (state.recurringExpenses || []).slice(0, 5);
+  if (!items.length) {
+    recurringList.innerHTML = `<div class="expense-item"><strong>No recurring expenses set.</strong><span>Create a weekly, monthly, or yearly payment to stay on track.</span></div>`;
+    return;
+  }
+
+  recurringList.innerHTML = items
+    .map((item) => {
+      const schedule = item.frequency === "weekly"
+        ? `Every ${["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][item.day_of_week]}`
+        : item.frequency === "monthly"
+          ? `Day ${item.day_of_month} of each month`
+          : `Day ${item.day_of_month} of each year`;
+      return `
+        <article class="expense-item">
+          <strong>${item.name}<span>${formatMoney(item.amount)}</span></strong>
+          <span>${item.category} · ${schedule}</span>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function normalizeRecurringExpense(recurring) {
+  return {
+    id: recurring.id,
+    name: recurring.name,
+    amount: Number(recurring.amount),
+    category: recurring.category,
+    frequency: recurring.frequency,
+    day_of_month: recurring.day_of_month,
+    day_of_week: recurring.day_of_week,
+    last_generated_at: recurring.last_generated_at || null,
+  };
 }
 
 function updateRecurringFields() {
@@ -1758,6 +1808,7 @@ async function hydrateFromApi() {
 
     // Populate filter category dropdown
     populateFilterCategories();
+    await fetchRecurringExpenses();
   } catch (error) {
     apiOnline = false;
     if (error.status === 403 && error.message === "Email verification required") {
