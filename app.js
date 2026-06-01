@@ -647,8 +647,10 @@ function handleRecurringItemClick(event) {
     recurringDayOfMonth.value = recurring.day_of_month || 1;
     recurringDayOfWeek.value = recurring.day_of_week || 0;
     updateRecurringFields();
-      showNotification("Editing recurring expense. Save to apply changes.", "info");
+    if (recurringForm) {
       recurringForm.querySelector("button[type=submit]").textContent = "Save recurring expense";
+    }
+    showNotification("Editing recurring expense. Save to apply changes.", "info");
     return;
   }
   if (deleteButton) {
