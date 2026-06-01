@@ -396,6 +396,8 @@ async function logout(event) {
     // ignore network errors — still clear local state
   }
 
+  showNotification("Logged out successfully", "success");
+
   authToken = null;
   apiOnline = false;
   authMode = "login";
