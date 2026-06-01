@@ -655,7 +655,8 @@ function handleRecurringItemClick(event) {
     recurringDayOfMonth.value = recurring.day_of_month || 1;
     recurringDayOfWeek.value = recurring.day_of_week || 0;
     updateRecurringFields();
-    showNotification("Editing recurring expense. Save to apply changes.", "info");
+      showNotification("Editing recurring expense. Save to apply changes.", "info");
+      recurringForm.querySelector("button[type=submit]").textContent = "Save recurring expense";
     return;
   }
   if (deleteButton) {
@@ -1189,12 +1190,8 @@ function renderCategoryOptions() {
     const current = recurringCategory.value;
     recurringCategory.innerHTML = categories
       .map((category) => `<option value="${category.name}">${category.name}</option>`)
-      .join("");
-    if (current && categories.some((category) => category.name === current)) {
-      recurringCategory.value = current;
-    }
-  }
-}
+      showNotification(`Recurring expense "${savedName}" updated.`, "success");
+      recurringForm.querySelector("button[type=submit]").textContent = "Create recurring expense";
 
 async function fetchRecurringExpenses() {
   if (!apiOnline) return;
