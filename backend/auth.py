@@ -75,6 +75,7 @@ def create_access_token(user: models.User) -> str:
     payload = {
         "sub": str(user.id),
         "email": user.email,
+        "role": user.role,
         "iat": datetime.now(UTC),
         "exp": expires_at,
     }
@@ -108,7 +109,15 @@ def get_current_user(
     if user is None:
         raise _auth_error()
 
+    if not hasattr(user, "role"):
+        user.role = "student"
+
     return user
+
+
+def require_role(user: models.User, required_role: str) -> None:
+    if getattr(user, "role", "student") != required_role:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
 
 
 def authenticate_user(db: Session, email: str, password: str) -> models.User | None:

@@ -109,6 +109,7 @@ class ProfileRead(BaseModel):
     gender: str
     email: str
     email_verified: bool
+    role: str
     allowance: Decimal
     preferred_range: str
     custom_range_start: date | None = None
@@ -207,6 +208,16 @@ class CategoryAnalytics(BaseModel):
     category: str
     total_amount: Decimal
     transaction_count: int
+
+
+class AdminDashboardRead(BaseModel):
+    total_users: int
+    verified_users: int
+    total_expenses: int
+    total_spend: Decimal
+    top_categories: list[CategoryAnalytics]
+
+    model_config = ConfigDict(from_attributes=True)
 
 class TotalBalanceRead(BaseModel):
     home_currency: str

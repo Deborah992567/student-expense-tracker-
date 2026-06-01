@@ -18,6 +18,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255))
     email_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    role: Mapped[str] = mapped_column(String(20), default="student", nullable=False)
     allowance: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=950)
     preferred_range: Mapped[str] = mapped_column(String(20), default="week")
     custom_range_start: Mapped[date] = mapped_column(Date, nullable=True)
