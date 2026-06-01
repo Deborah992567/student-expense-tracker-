@@ -919,6 +919,60 @@ def list_recurring_expenses(
         select(models.RecurringExpense).where(models.RecurringExpense.user_id == user.id).order_by(models.RecurringExpense.name)
     ).all()
 
+
+@app.patch("/api/recurring-expenses/{recurring_id}", response_model=schemas.RecurringExpenseRead)
+def update_recurring_expense(
+    recurring_id: int,
+    payload: schemas.RecurringExpenseUpdate,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    require_verified_email(user)
+    recurring = db.scalar(
+        select(models.RecurringExpense)
+        .where(models.RecurringExpense.id == recurring_id, models.RecurringExpense.user_id == user.id)
+    )
+    if recurring is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recurring expense not found")
+
+    if payload.name is not None:
+        recurring.name = payload.name
+    if payload.amount is not None:
+        recurring.amount = payload.amount
+    if payload.category is not None:
+        recurring.category = payload.category
+    if payload.frequency is not None:
+        recurring.frequency = payload.frequency
+    if payload.day_of_month is not None:
+        recurring.day_of_month = payload.day_of_month
+    if payload.day_of_week is not None:
+        recurring.day_of_week = payload.day_of_week
+
+    db.commit()
+    db.refresh(recurring)
+    invalidate_state_cache(user.id)
+    return recurring
+
+
+@app.delete("/api/recurring-expenses/{recurring_id}", response_model=schemas.MessageRead)
+def delete_recurring_expense(
+    recurring_id: int,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    require_verified_email(user)
+    recurring = db.scalar(
+        select(models.RecurringExpense)
+        .where(models.RecurringExpense.id == recurring_id, models.RecurringExpense.user_id == user.id)
+    )
+    if recurring is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recurring expense not found")
+
+    db.delete(recurring)
+    db.commit()
+    invalidate_state_cache(user.id)
+    return {"message": "Recurring expense removed"}
+
 def get_exchange_rates(redis) -> dict:
     """Fetch exchange rates with Redis caching (24h TTL)."""
     cache_key = "exchange_rates:v1"
