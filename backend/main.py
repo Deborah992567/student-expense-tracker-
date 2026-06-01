@@ -907,6 +907,18 @@ def create_recurring_expense(
     db.refresh(recurring)
     return recurring
 
+
+@app.get("/api/recurring-expenses", response_model=list[schemas.RecurringExpenseRead])
+def list_recurring_expenses(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    require_verified_email(user)
+    check_api_rate_limit(user.id)
+    return db.scalars(
+        select(models.RecurringExpense).where(models.RecurringExpense.user_id == user.id).order_by(models.RecurringExpense.name)
+    ).all()
+
 def get_exchange_rates(redis) -> dict:
     """Fetch exchange rates with Redis caching (24h TTL)."""
     cache_key = "exchange_rates:v1"
