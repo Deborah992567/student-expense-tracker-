@@ -1,7 +1,7 @@
 from datetime import date, datetime, UTC
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class CategoryRead(BaseModel):
@@ -55,9 +55,17 @@ class RecurringExpenseCreate(BaseModel):
     name: str = Field(min_length=1, max_length=160)
     amount: Decimal = Field(gt=0)
     category: str = Field(min_length=1, max_length=80)
-    frequency: str = Field(pattern=r"^(monthly|weekly)$")
+    frequency: str = Field(pattern=r"^(monthly|weekly|yearly)$")
     day_of_month: int | None = Field(None, ge=1, le=31)
     day_of_week: int | None = Field(None, ge=0, le=6)
+
+    @model_validator(mode="after")
+    def validate_recurring_schedule(self):
+        if self.frequency == "weekly" and self.day_of_week is None:
+            raise ValueError("day_of_week is required for weekly recurring expenses")
+        if self.frequency in {"monthly", "yearly"} and self.day_of_month is None:
+            raise ValueError("day_of_month is required for monthly and yearly recurring expenses")
+        return self
 
 
 class RecurringExpenseRead(RecurringExpenseCreate):

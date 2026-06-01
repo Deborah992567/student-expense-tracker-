@@ -440,7 +440,8 @@ def create_expense(
         if category_spent is None:
             category_spent = 0
         threshold = Decimal("0.9") * alert_category.budget
-        if category_spent >= threshold:
+        previous_spent = category_spent - Decimal(str(payload.amount))
+        if previous_spent < threshold <= category_spent:
             background_tasks.add_task(
                 send_budget_limit_email,
                 user.email,
@@ -921,6 +922,11 @@ def process_recurring_expenses(user_id: int) -> None:
             if item.frequency == "monthly":
                 if today.day >= (item.day_of_month or 1):
                     if not item.last_generated_at or (item.last_generated_at.month != today.month or item.last_generated_at.year != today.year):
+                        should_generate = True
+
+            elif item.frequency == "yearly":
+                if today.day == (item.day_of_month or 1):
+                    if not item.last_generated_at or item.last_generated_at.year != today.year:
                         should_generate = True
             
             # Basic weekly logic: day of week matches and not yet done this week
