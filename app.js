@@ -148,8 +148,9 @@ async function init() {
   authModeToggle.addEventListener("click", toggleAuthMode);
   authBackButton.addEventListener("click", returnToSignup);
   resendCodeButton.addEventListener("click", resendVerificationCode);
-  if (logoutButton) {
-    logoutButton.addEventListener("click", logout);
+  const logoutButtonElement = document.querySelector("#logoutButton");
+  if (logoutButtonElement) {
+    logoutButtonElement.addEventListener("click", logout);
   }
   
   authEmail.addEventListener("input", () => {
