@@ -604,6 +604,32 @@ input[readonly] {
   gap: 12px;
 }
 
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  padding: 12px 0 0;
+}
+
+.heatmap-cell {
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+  background: rgba(15, 159, 154, 0.08);
+  color: var(--ink);
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.heatmap-cell span {
+  display: block;
+  font-size: 0.85rem;
+  margin-top: 6px;
+  color: var(--muted);
+}
+
 .recurring-actions {
   display: flex;
   gap: 8px;

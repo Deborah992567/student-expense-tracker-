@@ -1200,6 +1200,8 @@ function render() {
   renderHealthScore(totals, totalSpent);
   renderBudgetWarnings(totals);
 
+  renderNetWorth();
+
   renderRecurringExpenses();
   renderCategoryBars(totals, totalSpent);
   renderExpenses(filtered);
@@ -1575,6 +1577,16 @@ async function fetchAnalytics() {
   } catch {
     state.totalConvertedBalance = null;
   }
+}
+
+function renderNetWorth() {
+  const netWorthEl = document.querySelector("#netWorth");
+  if (!netWorthEl) return;
+  const balanceValue = state.totalConvertedBalance?.total_converted_balance || 0;
+  const savingsValue = Number(state.goal?.saved || 0);
+  const netWorthTotal = balanceValue + savingsValue;
+  const currencyCode = state.totalConvertedBalance?.home_currency || currencyConfig[state.country]?.code || "USD";
+  netWorthEl.textContent = formatMoneyInCurrency(netWorthTotal, currencyCode);
 }
 
 function handleCountryChange() {
@@ -2354,6 +2366,32 @@ async function refreshAccessToken() {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
+
+function renderSpendingHeatmap(expenses) {
+  const heatmap = document.querySelector("#spendingHeatmap");
+  if (!heatmap) return;
+  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const totals = days.reduce((acc, day) => ({ ...acc, [day]: 0 }), {});
+  expenses.forEach((expense) => {
+    const day = new Date(expense.date).getDay();
+    const label = days[(day + 6) % 7];
+    totals[label] += expense.amount;
+  });
+  const max = Math.max(...Object.values(totals), 1);
+  heatmap.innerHTML = days
+    .map((day) => {
+      const value = totals[day];
+      const intensity = Math.min(0.9, value / max + 0.1);
+      const background = `rgba(37, 99, 235, ${intensity})`;
+      return `
+        <div class="heatmap-cell" style="background:${background}; color: ${intensity > 0.55 ? '#fff' : 'inherit'};">
+          <strong>${day}</strong>
+          <span>${formatMoney(value)}</span>
+        </div>
+      `;
+    })
+    .join("");
+}
     });
     if (!res.ok) {
       return false;
