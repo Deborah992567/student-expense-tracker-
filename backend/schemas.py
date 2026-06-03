@@ -118,6 +118,13 @@ class ProfileRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class AccountSecurityRead(BaseModel):
+    failed_login_attempts: int
+    locked_until: datetime | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class AppStateRead(BaseModel):
     profile: ProfileRead
     categories: list[CategoryRead]
@@ -184,6 +191,53 @@ class ForgotPasswordRequest(BaseModel):
 
 class MessageRead(BaseModel):
     message: str
+
+
+class HealthRead(BaseModel):
+    status: str
+    api_version: str
+    request_id: str | None = None
+    correlation_id: str | None = None
+
+
+class DependencyHealthRead(HealthRead):
+    dependency: str
+    latency_ms: float | None = None
+    detail: str | None = None
+
+
+class NotificationRead(BaseModel):
+    id: int
+    type: str
+    title: str
+    message: str
+    read: bool
+    created_at: datetime
+    read_at: datetime | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SessionRead(BaseModel):
+    id: int
+    jti: str
+    created_at: datetime
+    expires_at: datetime
+    last_used_at: datetime | None = None
+    revoked: bool
+    device_id: int | None = None
+    user_agent: str | None = None
+    ip_address: str | None = None
+
+
+class DeviceRead(BaseModel):
+    id: int
+    user_agent: str
+    ip_address: str
+    first_seen_at: datetime
+    last_seen_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ExpenseExportEmailRequest(BaseModel):

@@ -6,6 +6,8 @@ import time
 import json
 import csv
 import io
+import hashlib
+import uuid
 import urllib.request
 
 if __package__ in {None, ""}:
@@ -77,24 +79,48 @@ app.add_middleware(
 async def log_requests(request: Request, call_next):
     """Middleware to log all HTTP requests and responses."""
     start_time = time.time()
+    request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+    correlation_id = request.headers.get("X-Correlation-ID") or request_id
+    api_version = settings.api_version
     
-    # Store client IP in request state for later use
     request.state.client_ip = request.client.host if request.client else "unknown"
+    request.state.request_id = request_id
+    request.state.correlation_id = correlation_id
+    request.state.api_version = api_version
     
-    # Log incoming request
     access_logger.info(
-        "Request started: method=%s path=%s client=%s",
-        request.method, request.url.path, request.state.client_ip
+        "request_started",
+        extra={
+            "event": "request_started",
+            "request_id": request_id,
+            "correlation_id": correlation_id,
+            "method": request.method,
+            "path": request.url.path,
+            "client_ip": request.state.client_ip,
+            "api_version": api_version,
+        },
     )
     
     try:
         response = await call_next(request)
         duration = time.time() - start_time
+        response.headers["X-Request-ID"] = request_id
+        response.headers["X-Correlation-ID"] = correlation_id
+        response.headers["X-API-Version"] = api_version
         
-        # Log response
         access_logger.info(
-            "Request completed: method=%s path=%s status=%d duration=%.3fs",
-            request.method, request.url.path, response.status_code, duration
+            "request_completed",
+            extra={
+                "event": "request_completed",
+                "request_id": request_id,
+                "correlation_id": correlation_id,
+                "method": request.method,
+                "path": request.url.path,
+                "status_code": response.status_code,
+                "duration_ms": round(duration * 1000, 2),
+                "client_ip": request.state.client_ip,
+                "api_version": api_version,
+            },
         )
         
         return response
@@ -102,16 +128,29 @@ async def log_requests(request: Request, call_next):
         duration = time.time() - start_time
         # Handle specific SQLAlchemy errors globally
         if "UniqueViolation" in str(e) or "duplicate key" in str(e).lower():
-             return Response(
+             response = Response(
                 content=json.dumps({"detail": "This record already exists."}),
                 status_code=409,
                 media_type="application/json"
             )
+             response.headers["X-Request-ID"] = request_id
+             response.headers["X-Correlation-ID"] = correlation_id
+             response.headers["X-API-Version"] = api_version
+             return response
             
         logger.error(
-            "Request failed: method=%s path=%s error=%s duration=%.3fs",
-            request.method, request.url.path, str(e), duration,
-            exc_info=True
+            "request_failed",
+            exc_info=True,
+            extra={
+                "event": "request_failed",
+                "request_id": request_id,
+                "correlation_id": correlation_id,
+                "method": request.method,
+                "path": request.url.path,
+                "duration_ms": round(duration * 1000, 2),
+                "client_ip": request.state.client_ip,
+                "api_version": api_version,
+            },
         )
         raise
 
@@ -119,6 +158,7 @@ async def log_requests(request: Request, call_next):
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
+    response.headers["X-API-Version"] = settings.api_version
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"

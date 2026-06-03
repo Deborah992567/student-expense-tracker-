@@ -268,7 +268,7 @@ def _hash_token(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
-def create_refresh_token(db: Session, user: models.User):
+def create_refresh_token(db: Session, user: models.User, device_id: int | None = None):
     settings = get_settings()
     plaintext = secrets.token_urlsafe(48)
     jti = secrets.token_hex(16)
@@ -278,6 +278,7 @@ def create_refresh_token(db: Session, user: models.User):
     rt = models.RefreshToken(
         jti=jti,
         user_id=user.id,
+        device_id=device_id,
         token_hash=token_hash,
         created_at=now,
         expires_at=expires_at,
