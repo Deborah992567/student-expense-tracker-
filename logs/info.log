@@ -1517,3 +1517,9 @@ fastapi.exceptions.ResponseValidationError: 1 validation errors:
 2026-06-01 00:56:23 | INFO     | access | log_requests:74 | Request started: method=POST path=/api/auth/refresh client=127.0.0.1
 2026-06-01 00:56:23 | ERROR    | backend.database | get_db:67 | Database session error: 401: Missing refresh token
 2026-06-01 00:56:23 | INFO     | access | log_requests:84 | Request completed: method=POST path=/api/auth/refresh status=401 duration=0.002s
+{"timestamp":"2026-06-03T06:59:28+0100","level":"INFO","logger":"backend.logging_config","message":"Logging configured successfully (mode: production)"}
+{"timestamp":"2026-06-03T06:59:44+0100","level":"INFO","logger":"backend.logging_config","message":"Logging configured successfully (mode: production)"}
+{"timestamp":"2026-06-03T06:59:44+0100","level":"INFO","logger":"access","message":"request_started","request_id":"test-request","correlation_id":"test-request","method":"GET","path":"/health","client_ip":"testclient","api_version":"v1","event":"request_started"}
+{"timestamp":"2026-06-03T06:59:44+0100","level":"INFO","logger":"access","message":"health_check","request_id":"test-request","correlation_id":"test-request","method":"GET","path":"/health","status_code":200,"client_ip":"testclient","api_version":"v1","event":"health_check"}
+{"timestamp":"2026-06-03T06:59:44+0100","level":"INFO","logger":"access","message":"request_completed","request_id":"test-request","correlation_id":"test-request","method":"GET","path":"/health","status_code":200,"duration_ms":3.01,"client_ip":"testclient","api_version":"v1","event":"request_completed"}
+{"timestamp":"2026-06-03T06:59:44+0100","level":"INFO","logger":"httpx","message":"HTTP Request: GET http://testserver/health \"HTTP/1.1 200 OK\""}

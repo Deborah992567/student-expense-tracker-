@@ -1519,6 +1519,51 @@ def ensure_user_range_columns() -> None:
                 connection.execute(text(f"ALTER TABLE users ADD COLUMN {column_name} {column_definition}"))
 
 
+def ensure_security_columns() -> None:
+    inspector = inspect(engine)
+    if not inspector.has_table("users"):
+        return
+
+    existing_columns = {column["name"] for column in inspector.get_columns("users")}
+    security_columns = {
+        "failed_login_attempts": "INTEGER NOT NULL DEFAULT 0",
+        "locked_until": "TIMESTAMP NULL",
+    }
+
+    with engine.begin() as connection:
+        for column_name, column_definition in security_columns.items():
+            if column_name not in existing_columns:
+                connection.execute(text(f"ALTER TABLE users ADD COLUMN {column_name} {column_definition}"))
+
+
+def ensure_refresh_token_device_columns() -> None:
+    inspector = inspect(engine)
+    if not inspector.has_table("refresh_tokens"):
+        return
+
+    existing_columns = {column["name"] for column in inspector.get_columns("refresh_tokens")}
+    with engine.begin() as connection:
+        if "device_id" not in existing_columns:
+            connection.execute(text("ALTER TABLE refresh_tokens ADD COLUMN device_id INTEGER NULL"))
+
+
+def ensure_database_indexes() -> None:
+    index_statements = [
+        "CREATE INDEX IF NOT EXISTS ix_expenses_user_deleted_date_id ON expenses (user_id, deleted, date, id)",
+        "CREATE INDEX IF NOT EXISTS ix_expenses_user_category_date ON expenses (user_id, category, date)",
+        "CREATE INDEX IF NOT EXISTS ix_refresh_tokens_user_revoked_expires ON refresh_tokens (user_id, revoked, expires_at)",
+        "CREATE INDEX IF NOT EXISTS ix_user_devices_user_last_seen ON user_devices (user_id, last_seen_at)",
+        "CREATE INDEX IF NOT EXISTS ix_notifications_user_read_created ON notifications (user_id, read, created_at)",
+    ]
+    inspector = inspect(engine)
+    tables = set(inspector.get_table_names())
+    with engine.begin() as connection:
+        for statement in index_statements:
+            table_name = statement.split(" ON ", 1)[1].split(" ", 1)[0]
+            if table_name in tables:
+                connection.execute(text(statement))
+
+
 def reset_legacy_starter_budgets() -> None:
     starter_budgets = {
         "Food": 260,

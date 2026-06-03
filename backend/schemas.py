@@ -125,21 +125,19 @@ class AccountSecurityRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class AppStateRead(BaseModel):
-    profile: ProfileRead
-    categories: list[CategoryRead]
-    expenses: list[ExpenseRead]
-    goal: GoalRead
-    settings: UserSettingsRead
-
-
 class UserSettingsRead(BaseModel):
     country: str
     savings_currencies: list[dict]
 
     model_config = ConfigDict(from_attributes=True)
 
-    model_config = ConfigDict(from_attributes=True)
+
+class AppStateRead(BaseModel):
+    profile: ProfileRead
+    categories: list[CategoryRead]
+    expenses: list[ExpenseRead]
+    goal: GoalRead
+    settings: UserSettingsRead
 
 
 class SettingsUpdate(BaseModel):
