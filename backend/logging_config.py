@@ -10,6 +10,7 @@ Configures structured logging with:
 
 import logging
 import logging.handlers
+import json
 import sys
 from pathlib import Path
 
@@ -45,6 +46,36 @@ class ColoredFormatter(logging.Formatter):
         return super().format(record)
 
 
+class StructuredJSONFormatter(logging.Formatter):
+    """JSON formatter that carries request/correlation metadata when present."""
+
+    def format(self, record):
+        payload = {
+            "timestamp": self.formatTime(record, "%Y-%m-%dT%H:%M:%S%z"),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
+        for field in (
+            "request_id",
+            "correlation_id",
+            "method",
+            "path",
+            "status_code",
+            "duration_ms",
+            "client_ip",
+            "api_version",
+            "event",
+            "user_id",
+        ):
+            value = getattr(record, field, None)
+            if value is not None:
+                payload[field] = value
+        if record.exc_info:
+            payload["exception"] = self.formatException(record.exc_info)
+        return json.dumps(payload, default=str, separators=(",", ":"))
+
+
 def setup_logging() -> None:
     """Configure logging for the application."""
     settings = get_settings()
@@ -62,15 +93,7 @@ def setup_logging() -> None:
     # Console handler (for development and immediate feedback)
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(logging.DEBUG if not is_production else logging.INFO)
-    console_format = logging.Formatter(
-        "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S"
-    )
-    if not is_production:
-        console_format = ColoredFormatter(
-            "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S"
-        )
+    console_format = StructuredJSONFormatter()
     console_handler.setFormatter(console_format)
     root_logger.addHandler(console_handler)
     
@@ -83,10 +106,7 @@ def setup_logging() -> None:
             encoding="utf-8"
         )
         info_handler.setLevel(logging.INFO)
-        info_format = logging.Formatter(
-            "%(asctime)s | %(levelname)-8s | %(name)s | %(funcName)s:%(lineno)d | %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S"
-        )
+        info_format = StructuredJSONFormatter()
         info_handler.setFormatter(info_format)
         root_logger.addHandler(info_handler)
         
