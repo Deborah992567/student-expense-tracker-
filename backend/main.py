@@ -128,15 +128,15 @@ async def log_requests(request: Request, call_next):
         duration = time.time() - start_time
         # Handle specific SQLAlchemy errors globally
         if "UniqueViolation" in str(e) or "duplicate key" in str(e).lower():
-             response = Response(
+            response = Response(
                 content=json.dumps({"detail": "This record already exists."}),
                 status_code=409,
                 media_type="application/json"
             )
-             response.headers["X-Request-ID"] = request_id
-             response.headers["X-Correlation-ID"] = correlation_id
-             response.headers["X-API-Version"] = api_version
-             return response
+            response.headers["X-Request-ID"] = request_id
+            response.headers["X-Correlation-ID"] = correlation_id
+            response.headers["X-API-Version"] = api_version
+            return response
             
         logger.error(
             "request_failed",
@@ -181,14 +181,55 @@ def startup() -> None:
     Base.metadata.create_all(bind=engine)
     ensure_user_profile_columns()
     ensure_user_range_columns()
+    ensure_security_columns()
+    ensure_refresh_token_device_columns()
+    ensure_database_indexes()
     reset_legacy_starter_budgets()
     reset_legacy_starter_goals()
     logger.info("StudentSpend API server started successfully")
 
 
-@app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok"}
+@app.get("/health", response_model=schemas.HealthRead)
+def health(request: Request) -> dict[str, str | None]:
+    log_health_event(request, "health_check", "ok")
+    return health_payload(request, "ok")
+
+
+@app.get("/health/db", response_model=schemas.DependencyHealthRead)
+def health_db(request: Request, db: Session = Depends(get_db)) -> dict[str, object]:
+    start_time = time.time()
+    try:
+        db.execute(text("SELECT 1"))
+        latency_ms = round((time.time() - start_time) * 1000, 2)
+        log_health_event(request, "health_db_check", "ok", latency_ms=latency_ms)
+        return {**health_payload(request, "ok"), "dependency": "database", "latency_ms": latency_ms}
+    except Exception as exc:
+        latency_ms = round((time.time() - start_time) * 1000, 2)
+        log_health_event(request, "health_db_check", "error", latency_ms=latency_ms, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Database health check failed")
+
+
+@app.get("/health/redis", response_model=schemas.DependencyHealthRead)
+def health_redis(request: Request, redis = Depends(get_redis)) -> dict[str, object]:
+    start_time = time.time()
+    if redis is None:
+        log_health_event(request, "health_redis_check", "error", detail="redis client unavailable")
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Redis client unavailable")
+    try:
+        redis.ping()
+        latency_ms = round((time.time() - start_time) * 1000, 2)
+        log_health_event(request, "health_redis_check", "ok", latency_ms=latency_ms)
+        return {**health_payload(request, "ok"), "dependency": "redis", "latency_ms": latency_ms}
+    except RedisError as exc:
+        latency_ms = round((time.time() - start_time) * 1000, 2)
+        log_health_event(request, "health_redis_check", "error", latency_ms=latency_ms, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Redis health check failed")
+
+
+@app.get("/api/version")
+@app.get("/api/v1/version")
+def api_version() -> dict[str, str]:
+    return {"api_version": settings.api_version}
 
 
 @app.get("/", include_in_schema=False)
@@ -233,6 +274,13 @@ def signup(payload: schemas.SignupRequest, background_tasks: BackgroundTasks, db
     db.add(user)
     db.flush()
     seed_user_defaults(db, user)
+    create_notification(
+        db,
+        user.id,
+        "account",
+        "Welcome to StudentSpend",
+        "Your account was created successfully.",
+    )
     db.commit()
     db.refresh(user)
     background_send_verification(db, user, background_tasks)
@@ -249,13 +297,29 @@ def login(payload: schemas.LoginRequest, request: Request, response: Response, b
     logger.debug("Login attempt for email=%s, ip=%s", email, client_ip)
     
     check_login_rate_limit(payload.email)
+    existing_user = db.scalar(select(models.User).where(models.User.email == email))
+    if existing_user is not None and is_account_locked(existing_user):
+        security_logger.warning(
+            "Account login blocked by lockout: user_id=%s, email=%s, ip=%s",
+            existing_user.id,
+            email,
+            client_ip,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_423_LOCKED,
+            detail=f"Account locked until {as_aware_utc(existing_user.locked_until).isoformat()}",
+        )
+
     user = authenticate_user(db, payload.email, payload.password)
     if user is None:
         record_failed_login(payload.email)
+        if existing_user is not None:
+            record_persistent_failed_login(db, existing_user, request)
         security_logger.warning("Failed login attempt: email=%s, ip=%s", email, client_ip)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
 
     clear_failed_logins(payload.email)
+    clear_persistent_failed_logins(db, user)
     
     # Trigger background maintenance
     background_tasks.add_task(cleanup_expired_data)
@@ -265,7 +329,15 @@ def login(payload: schemas.LoginRequest, request: Request, response: Response, b
     token = create_access_token(user)
     # create refresh token and set as cookie
     try:
-        plaintext, rt = create_refresh_token(db, user)
+        device = upsert_user_device(db, user, request)
+        plaintext, rt = create_refresh_token(db, user, device.id)
+        create_notification(
+            db,
+            user.id,
+            "security",
+            "New sign-in",
+            f"New sign-in from {device.ip_address or 'unknown IP'}.",
+        )
         # response might be a FastAPI Response object; try to set cookie if available
         # set cookie name 'refresh_token' at path /api/auth/refresh so it's scoped
         if isinstance(response, Response):
@@ -354,11 +426,17 @@ def refresh_token(response: Response, request: Request, db: Session = Depends(ge
     user = db.get(models.User, rt.user_id)
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+    rt.last_used_at = datetime.now(UTC)
+    if rt.device is not None:
+        rt.device.last_seen_at = datetime.now(UTC)
+        rt.device.ip_address = getattr(request.state, "client_ip", rt.device.ip_address)
+        rt.device.user_agent = request.headers.get("user-agent", rt.device.user_agent)
+    db.commit()
 
     # rotate: revoke current and issue a new one
     try:
         revoke_refresh_token(db, rt)
-        plaintext, new_rt = create_refresh_token(db, user)
+        plaintext, new_rt = create_refresh_token(db, user, rt.device_id)
         response.set_cookie(
             key="refresh_token",
             value=plaintext,
