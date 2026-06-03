@@ -338,6 +338,7 @@ def login(payload: schemas.LoginRequest, request: Request, response: Response, b
             "New sign-in",
             f"New sign-in from {device.ip_address or 'unknown IP'}.",
         )
+        db.commit()
         # response might be a FastAPI Response object; try to set cookie if available
         # set cookie name 'refresh_token' at path /api/auth/refresh so it's scoped
         if isinstance(response, Response):
@@ -460,6 +461,55 @@ def logout(response: Response, db: Session = Depends(get_db), user: models.User 
     return {"message": "Logged out"}
 
 
+@app.get("/api/sessions", response_model=list[schemas.SessionRead])
+@app.get("/api/v1/sessions", response_model=list[schemas.SessionRead])
+def list_sessions(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> list[dict[str, object]]:
+    require_verified_email(user)
+    tokens = db.scalars(
+        select(models.RefreshToken)
+        .where(models.RefreshToken.user_id == user.id)
+        .order_by(models.RefreshToken.created_at.desc())
+    ).all()
+    return [session_payload(token) for token in tokens]
+
+
+@app.delete("/api/sessions/{session_id}", response_model=schemas.MessageRead)
+@app.delete("/api/v1/sessions/{session_id}", response_model=schemas.MessageRead)
+def revoke_session(
+    session_id: int,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> dict[str, str]:
+    token = db.scalar(
+        select(models.RefreshToken).where(
+            models.RefreshToken.id == session_id,
+            models.RefreshToken.user_id == user.id,
+        )
+    )
+    if token is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+    token.revoked = True
+    db.commit()
+    return {"message": "Session revoked"}
+
+
+@app.get("/api/devices", response_model=list[schemas.DeviceRead])
+@app.get("/api/v1/devices", response_model=list[schemas.DeviceRead])
+def list_devices(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> list[models.UserDevice]:
+    require_verified_email(user)
+    return db.scalars(
+        select(models.UserDevice)
+        .where(models.UserDevice.user_id == user.id)
+        .order_by(models.UserDevice.last_seen_at.desc())
+    ).all()
+
+
 @app.post("/api/auth/forgot-password", response_model=schemas.MessageRead)
 def forgot_password(payload: schemas.ForgotPasswordRequest, db: Session = Depends(get_db)) -> dict[str, str]:
     email = normalize_email(payload.email)
@@ -535,6 +585,56 @@ def update_settings(
     return settings
 
 
+@app.get("/api/notifications", response_model=list[schemas.NotificationRead])
+@app.get("/api/v1/notifications", response_model=list[schemas.NotificationRead])
+def list_notifications(
+    unread_only: bool = False,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> list[models.Notification]:
+    require_verified_email(user)
+    query = select(models.Notification).where(models.Notification.user_id == user.id)
+    if unread_only:
+        query = query.where(models.Notification.read == False)
+    return db.scalars(query.order_by(models.Notification.created_at.desc()).limit(100)).all()
+
+
+@app.patch("/api/notifications/{notification_id}/read", response_model=schemas.NotificationRead)
+@app.patch("/api/v1/notifications/{notification_id}/read", response_model=schemas.NotificationRead)
+def mark_notification_read(
+    notification_id: int,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> models.Notification:
+    notification = db.scalar(
+        select(models.Notification).where(
+            models.Notification.id == notification_id,
+            models.Notification.user_id == user.id,
+        )
+    )
+    if notification is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Notification not found")
+    notification.read = True
+    notification.read_at = datetime.now(UTC)
+    db.commit()
+    db.refresh(notification)
+    return notification
+
+
+@app.patch("/api/notifications/read-all", response_model=schemas.MessageRead)
+@app.patch("/api/v1/notifications/read-all", response_model=schemas.MessageRead)
+def mark_all_notifications_read(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> dict[str, str]:
+    db.query(models.Notification).filter(
+        models.Notification.user_id == user.id,
+        models.Notification.read == False,
+    ).update({"read": True, "read_at": datetime.now(UTC)})
+    db.commit()
+    return {"message": "Notifications marked as read"}
+
+
 @app.patch("/api/profile", response_model=schemas.ProfileRead)
 def update_profile(
     payload: schemas.ProfileUpdate,
@@ -589,6 +689,13 @@ def create_expense(
         threshold = Decimal("0.9") * alert_category.budget
         previous_spent = category_spent - Decimal(str(payload.amount))
         if previous_spent < threshold <= category_spent:
+            create_notification(
+                db,
+                user.id,
+                "budget",
+                "Budget limit warning",
+                f"{alert_category.name} has reached {float(category_spent / alert_category.budget * 100):.0f}% of its budget.",
+            )
             background_tasks.add_task(
                 send_budget_limit_email,
                 user.email,
@@ -597,6 +704,7 @@ def create_expense(
                 float(category_spent / alert_category.budget * 100),
                 float(alert_category.budget),
             )
+            db.commit()
     logger.info("Expense created: expense_id=%s, user_id=%s, name=%s, amount=%s", 
                 expense.id, user.id, payload.name, payload.amount)
     invalidate_state_cache(user.id)
@@ -841,6 +949,136 @@ def update_goal(
 def require_verified_email(user: models.User) -> None:
     if not user.email_verified:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Email verification required")
+
+
+def health_payload(request: Request, status_value: str) -> dict[str, str | None]:
+    return {
+        "status": status_value,
+        "api_version": settings.api_version,
+        "request_id": getattr(request.state, "request_id", None),
+        "correlation_id": getattr(request.state, "correlation_id", None),
+    }
+
+
+def log_health_event(
+    request: Request,
+    event: str,
+    status_value: str,
+    latency_ms: float | None = None,
+    detail: str | None = None,
+) -> None:
+    payload = {
+        "event": event,
+        "request_id": getattr(request.state, "request_id", None),
+        "correlation_id": getattr(request.state, "correlation_id", None),
+        "method": request.method,
+        "path": request.url.path,
+        "status_code": 200 if status_value == "ok" else 503,
+        "client_ip": getattr(request.state, "client_ip", None),
+        "api_version": settings.api_version,
+    }
+    if latency_ms is not None:
+        payload["duration_ms"] = latency_ms
+    if detail:
+        payload["detail"] = detail
+    access_logger.info(event, extra=payload)
+
+
+def is_account_locked(user: models.User) -> bool:
+    locked_until = getattr(user, "locked_until", None)
+    return locked_until is not None and as_aware_utc(locked_until) > datetime.now(UTC)
+
+
+def record_persistent_failed_login(db: Session, user: models.User, request: Request) -> None:
+    user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
+    if user.failed_login_attempts >= settings.login_max_attempts:
+        user.locked_until = datetime.now(UTC) + timedelta_minutes(settings.login_lockout_minutes)
+        create_notification(
+            db,
+            user.id,
+            "security",
+            "Account locked",
+            f"Your account was locked after {settings.login_max_attempts} failed login attempts.",
+        )
+        security_logger.warning(
+            "Account locked: user_id=%s, email=%s, ip=%s, lockout_minutes=%d",
+            user.id,
+            user.email,
+            getattr(request.state, "client_ip", "unknown"),
+            settings.login_lockout_minutes,
+        )
+    db.commit()
+
+
+def clear_persistent_failed_logins(db: Session, user: models.User) -> None:
+    if (user.failed_login_attempts or 0) == 0 and user.locked_until is None:
+        return
+    user.failed_login_attempts = 0
+    user.locked_until = None
+    db.commit()
+
+
+def timedelta_minutes(minutes: int):
+    from datetime import timedelta
+
+    return timedelta(minutes=minutes)
+
+
+def upsert_user_device(db: Session, user: models.User, request: Request) -> models.UserDevice:
+    now = datetime.now(UTC)
+    user_agent = request.headers.get("user-agent", "")
+    ip_address = getattr(request.state, "client_ip", "unknown")
+    fingerprint = hashlib.sha256(f"{user.id}:{user_agent}:{ip_address}".encode("utf-8")).hexdigest()
+    device = db.scalar(
+        select(models.UserDevice).where(
+            models.UserDevice.user_id == user.id,
+            models.UserDevice.device_fingerprint == fingerprint,
+        )
+    )
+    if device is None:
+        device = models.UserDevice(
+            user_id=user.id,
+            device_fingerprint=fingerprint,
+            user_agent=user_agent,
+            ip_address=ip_address,
+            first_seen_at=now,
+            last_seen_at=now,
+        )
+        db.add(device)
+        db.flush()
+    else:
+        device.user_agent = user_agent
+        device.ip_address = ip_address
+        device.last_seen_at = now
+    return device
+
+
+def create_notification(db: Session, user_id: int, type_: str, title: str, message: str) -> models.Notification:
+    notification = models.Notification(
+        user_id=user_id,
+        type=type_,
+        title=title,
+        message=message,
+        read=False,
+        created_at=datetime.now(UTC),
+    )
+    db.add(notification)
+    return notification
+
+
+def session_payload(token: models.RefreshToken) -> dict[str, object]:
+    device = token.device
+    return {
+        "id": token.id,
+        "jti": token.jti,
+        "created_at": token.created_at,
+        "expires_at": token.expires_at,
+        "last_used_at": token.last_used_at,
+        "revoked": token.revoked,
+        "device_id": token.device_id,
+        "user_agent": device.user_agent if device else None,
+        "ip_address": device.ip_address if device else None,
+    }
 
 
 def background_send_verification(db: Session, user: models.User, background_tasks: BackgroundTasks) -> None:
