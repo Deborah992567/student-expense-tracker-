@@ -8,6 +8,7 @@ ENV_FILE = Path(__file__).with_name(".env")
 
 
 class Settings(BaseSettings):
+    api_version: str = "v1"
     database_url: str = "postgresql+psycopg://student_expense:student_expense@localhost:5432/student_expense"
     redis_url: str = "redis://localhost:6379/0"
     api_cors_origins: str = "http://localhost:8000,http://127.0.0.1:8000,null"
