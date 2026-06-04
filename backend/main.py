@@ -1459,6 +1459,186 @@ def get_admin_dashboard(
         "top_categories": top_categories,
     }
 
+
+@app.post("/api/admin/backups", response_model=schemas.BackupRead, status_code=status.HTTP_201_CREATED)
+def create_backup_endpoint(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> models.BackupRecord:
+    require_role(user, "admin")
+    return create_database_backup(db, initiated_by_user_id=user.id)
+
+
+@app.get("/api/admin/backups", response_model=list[schemas.BackupRead])
+def list_backups(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> list[models.BackupRecord]:
+    require_role(user, "admin")
+    return db.scalars(select(models.BackupRecord).order_by(models.BackupRecord.started_at.desc()).limit(50)).all()
+
+
+@app.post("/api/reports/schedules", response_model=schemas.ScheduledReportRead, status_code=status.HTTP_201_CREATED)
+def create_report_schedule(
+    payload: schemas.ScheduledReportCreate,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> models.ScheduledReport:
+    require_verified_email(user)
+    report = models.ScheduledReport(
+        user_id=user.id,
+        email=payload.email or user.email,
+        frequency=payload.frequency,
+        format=payload.format,
+        active=True,
+        next_run_at=next_report_run(payload.frequency),
+        created_at=datetime.now(UTC),
+    )
+    db.add(report)
+    db.commit()
+    db.refresh(report)
+    return report
+
+
+@app.get("/api/reports/schedules", response_model=list[schemas.ScheduledReportRead])
+def list_report_schedules(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> list[models.ScheduledReport]:
+    require_verified_email(user)
+    return db.scalars(
+        select(models.ScheduledReport)
+        .where(models.ScheduledReport.user_id == user.id)
+        .order_by(models.ScheduledReport.created_at.desc())
+    ).all()
+
+
+@app.patch("/api/reports/schedules/{report_id}/toggle", response_model=schemas.ScheduledReportRead)
+def toggle_report_schedule(
+    report_id: int,
+    active: bool,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> models.ScheduledReport:
+    require_verified_email(user)
+    report = db.scalar(
+        select(models.ScheduledReport).where(
+            models.ScheduledReport.id == report_id,
+            models.ScheduledReport.user_id == user.id,
+        )
+    )
+    if report is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report schedule not found")
+    report.active = active
+    if active and report.next_run_at < datetime.now(UTC):
+        report.next_run_at = next_report_run(report.frequency)
+    db.commit()
+    db.refresh(report)
+    return report
+
+
+@app.get("/api/admin/feature-flags", response_model=list[schemas.FeatureFlagRead])
+def list_feature_flags(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> list[models.FeatureFlag]:
+    require_role(user, "admin")
+    return db.scalars(select(models.FeatureFlag).order_by(models.FeatureFlag.key)).all()
+
+
+@app.put("/api/admin/feature-flags/{flag_key}", response_model=schemas.FeatureFlagRead)
+def upsert_feature_flag(
+    flag_key: str,
+    payload: schemas.FeatureFlagUpsert,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> models.FeatureFlag:
+    require_role(user, "admin")
+    now = datetime.now(UTC)
+    flag = db.scalar(select(models.FeatureFlag).where(models.FeatureFlag.key == flag_key))
+    if flag is None:
+        flag = models.FeatureFlag(key=flag_key, created_at=now, updated_at=now)
+        db.add(flag)
+    flag.description = payload.description
+    flag.enabled = payload.enabled
+    flag.audience = payload.audience
+    flag.updated_at = now
+    db.commit()
+    db.refresh(flag)
+    return flag
+
+
+@app.get("/api/feature-flags")
+def read_enabled_feature_flags(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> dict[str, bool]:
+    flags = db.scalars(select(models.FeatureFlag)).all()
+    return {flag.key: is_feature_enabled(flag, user) for flag in flags}
+
+
+@app.post("/api/admin/queue/jobs", response_model=schemas.QueueJobRead, status_code=status.HTTP_201_CREATED)
+def enqueue_job_endpoint(
+    payload: schemas.QueueJobCreate,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> models.QueueJob:
+    require_role(user, "admin")
+    job = enqueue_job(db, payload.task_name, payload.payload, payload.scheduled_for)
+    db.commit()
+    db.refresh(job)
+    return job
+
+
+@app.get("/api/admin/queue/jobs", response_model=list[schemas.QueueJobRead])
+def list_queue_jobs(
+    status_filter: str = "",
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> list[models.QueueJob]:
+    require_role(user, "admin")
+    query = select(models.QueueJob)
+    if status_filter:
+        query = query.where(models.QueueJob.status == status_filter)
+    return db.scalars(query.order_by(models.QueueJob.scheduled_for.desc()).limit(100)).all()
+
+
+@app.post("/api/admin/queue/run", response_model=schemas.MessageRead)
+def run_queue_once_endpoint(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> dict[str, str]:
+    require_role(user, "admin")
+    processed = process_queue_jobs(db)
+    return {"message": f"Processed {processed} queued jobs"}
+
+
+@app.post("/api/expenses/archive", response_model=schemas.ArchiveRead)
+def archive_expenses_endpoint(
+    payload: schemas.ArchiveRequest,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> models.ArchiveRecord:
+    require_verified_email(user)
+    record = archive_user_expenses(db, user.id, payload.archived_before)
+    db.commit()
+    db.refresh(record)
+    invalidate_state_cache(user.id)
+    return record
+
+
+@app.get("/api/expenses/archives", response_model=list[schemas.ArchiveRead])
+def list_archives(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> list[models.ArchiveRecord]:
+    require_verified_email(user)
+    return db.scalars(
+        select(models.ArchiveRecord)
+        .where(models.ArchiveRecord.user_id == user.id)
+        .order_by(models.ArchiveRecord.created_at.desc())
+    ).all()
+
 @app.get("/api/analytics/total-balance", response_model=schemas.TotalBalanceRead)
 def get_total_converted_balance(
     db: Session = Depends(get_db),
