@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, date as date_type
+from datetime import UTC, datetime, date as date_type, timedelta
 from decimal import Decimal
 from pathlib import Path
 import sys
@@ -9,6 +9,9 @@ import io
 import hashlib
 import uuid
 import urllib.request
+import shutil
+import subprocess
+import threading
 
 if __package__ in {None, ""}:
     sys.path.append(str(Path(__file__).resolve().parent.parent))
@@ -33,7 +36,10 @@ from backend.auth import (
     normalize_email,
     record_failed_login,
     create_refresh_token,
+    create_two_factor_token,
+    decode_two_factor_token,
     verify_refresh_token,
+    verify_password,
     revoke_refresh_token,
     revoke_all_user_tokens,
     check_api_rate_limit,
@@ -53,7 +59,9 @@ from backend.email_verification import (
     latest_pending_code,
 )
 from backend.logging_config import setup_logging, get_logger, get_security_logger, get_access_logger
+from backend.metrics import metrics_response, observe_job, observe_request
 from backend.seed import seed_user_defaults
+from backend.two_factor import generate_totp_secret, provisioning_uri, verify_totp
 
 # Setup logging
 setup_logging()
@@ -104,6 +112,7 @@ async def log_requests(request: Request, call_next):
     try:
         response = await call_next(request)
         duration = time.time() - start_time
+        observe_request(request.method, request.url.path, response.status_code, duration)
         response.headers["X-Request-ID"] = request_id
         response.headers["X-Correlation-ID"] = correlation_id
         response.headers["X-API-Version"] = api_version
@@ -126,6 +135,7 @@ async def log_requests(request: Request, call_next):
         return response
     except Exception as e:
         duration = time.time() - start_time
+        observe_request(request.method, request.url.path, 500, duration)
         # Handle specific SQLAlchemy errors globally
         if "UniqueViolation" in str(e) or "duplicate key" in str(e).lower():
             response = Response(
@@ -182,10 +192,14 @@ def startup() -> None:
     ensure_user_profile_columns()
     ensure_user_range_columns()
     ensure_security_columns()
+    ensure_two_factor_columns()
+    ensure_expense_archive_columns()
     ensure_refresh_token_device_columns()
     ensure_database_indexes()
     reset_legacy_starter_budgets()
     reset_legacy_starter_goals()
+    seed_default_feature_flags()
+    start_maintenance_threads()
     logger.info("StudentSpend API server started successfully")
 
 
@@ -230,6 +244,12 @@ def health_redis(request: Request, redis = Depends(get_redis)) -> dict[str, obje
 @app.get("/api/v1/version")
 def api_version() -> dict[str, str]:
     return {"api_version": settings.api_version}
+
+
+@app.get("/metrics", include_in_schema=False)
+def prometheus_metrics() -> Response:
+    content, media_type = metrics_response()
+    return Response(content=content, media_type=media_type)
 
 
 @app.get("/", include_in_schema=False)
