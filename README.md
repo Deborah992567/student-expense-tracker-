@@ -79,6 +79,9 @@ curl http://127.0.0.1:8003/health
 		- `POST /api/expenses/{expense_id}/restore` — restore a soft-deleted expense
 		- `GET /api/expenses/recycle` — list deleted expenses
 		- `DELETE /api/expenses/{expense_id}` — permanently delete (only for already soft-deleted items)
+- Two-factor authentication: users can set up TOTP 2FA with `/api/auth/2fa/setup`, enable it with `/api/auth/2fa/enable`, and complete challenged logins with `/api/auth/2fa/verify`.
+- Operations features: automatic DB backups, scheduled CSV report emails, feature flags, durable queue jobs, expense archiving, and Prometheus metrics are now built into the backend.
+- Monitoring: Prometheus and Grafana provisioning lives under `monitoring/`. Run `docker compose -f monitoring/docker-compose.yml up` after starting the API, then open Grafana at `http://localhost:3000`.
 - Alembic migrations are included under `backend/alembic/versions`.
 
 ## API (selected)
@@ -90,8 +93,11 @@ curl http://127.0.0.1:8003/health
 - `POST /api/auth/logout` — revoke tokens and clear refresh cookie
 - `GET /api/state` — user state, settings, and recent expenses
 - `GET /api/expenses` — list expenses (excludes soft-deleted items)
+- `GET /api/search/expenses` — search and filter expenses by text, category, date, amount, and archive status
 - `POST /api/expenses` — create expense
 - `PATCH /api/expenses/{id}/delete` — soft-delete expense
+- `POST /api/expenses/archive` — archive old expenses for the current user
+- `GET /metrics` — Prometheus metrics
 
 For a full list of endpoints consult `backend/main.py`.
 
