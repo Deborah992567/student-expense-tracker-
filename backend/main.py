@@ -2158,6 +2158,40 @@ def ensure_security_columns() -> None:
                 connection.execute(text(f"ALTER TABLE users ADD COLUMN {column_name} {column_definition}"))
 
 
+def ensure_two_factor_columns() -> None:
+    inspector = inspect(engine)
+    if not inspector.has_table("users"):
+        return
+
+    existing_columns = {column["name"] for column in inspector.get_columns("users")}
+    two_factor_columns = {
+        "two_factor_enabled": "BOOLEAN NOT NULL DEFAULT FALSE",
+        "two_factor_secret": "VARCHAR(64) NULL",
+    }
+
+    with engine.begin() as connection:
+        for column_name, column_definition in two_factor_columns.items():
+            if column_name not in existing_columns:
+                connection.execute(text(f"ALTER TABLE users ADD COLUMN {column_name} {column_definition}"))
+
+
+def ensure_expense_archive_columns() -> None:
+    inspector = inspect(engine)
+    if not inspector.has_table("expenses"):
+        return
+
+    existing_columns = {column["name"] for column in inspector.get_columns("expenses")}
+    archive_columns = {
+        "archived": "BOOLEAN NOT NULL DEFAULT FALSE",
+        "archived_at": "TIMESTAMP NULL",
+    }
+
+    with engine.begin() as connection:
+        for column_name, column_definition in archive_columns.items():
+            if column_name not in existing_columns:
+                connection.execute(text(f"ALTER TABLE expenses ADD COLUMN {column_name} {column_definition}"))
+
+
 def ensure_refresh_token_device_columns() -> None:
     inspector = inspect(engine)
     if not inspector.has_table("refresh_tokens"):
@@ -2176,6 +2210,9 @@ def ensure_database_indexes() -> None:
         "CREATE INDEX IF NOT EXISTS ix_refresh_tokens_user_revoked_expires ON refresh_tokens (user_id, revoked, expires_at)",
         "CREATE INDEX IF NOT EXISTS ix_user_devices_user_last_seen ON user_devices (user_id, last_seen_at)",
         "CREATE INDEX IF NOT EXISTS ix_notifications_user_read_created ON notifications (user_id, read, created_at)",
+        "CREATE INDEX IF NOT EXISTS ix_scheduled_reports_active_next_run ON scheduled_reports (active, next_run_at)",
+        "CREATE INDEX IF NOT EXISTS ix_queue_jobs_status_scheduled ON queue_jobs (status, scheduled_for)",
+        "CREATE INDEX IF NOT EXISTS ix_expenses_user_archived_date ON expenses (user_id, archived, date)",
     ]
     inspector = inspect(engine)
     tables = set(inspector.get_table_names())
@@ -2184,6 +2221,34 @@ def ensure_database_indexes() -> None:
             table_name = statement.split(" ON ", 1)[1].split(" ", 1)[0]
             if table_name in tables:
                 connection.execute(text(statement))
+
+
+def seed_default_feature_flags() -> None:
+    defaults = {
+        "two_factor_authentication": "Require a TOTP code during login when enabled by a user.",
+        "scheduled_reports": "Allow users to receive recurring expense reports.",
+        "expense_archiving": "Hide old expenses from default lists while retaining them.",
+        "queue_workers": "Enable durable background job processing.",
+    }
+    now = datetime.now(UTC)
+    with Session(engine) as db:
+        changed = False
+        for key, description in defaults.items():
+            existing = db.scalar(select(models.FeatureFlag).where(models.FeatureFlag.key == key))
+            if existing is None:
+                db.add(
+                    models.FeatureFlag(
+                        key=key,
+                        description=description,
+                        enabled=True,
+                        audience={},
+                        created_at=now,
+                        updated_at=now,
+                    )
+                )
+                changed = True
+        if changed:
+            db.commit()
 
 
 def reset_legacy_starter_budgets() -> None:
