@@ -1848,6 +1848,245 @@ def cleanup_expired_data() -> None:
         db.close()
 
 
+def create_database_backup(db: Session, initiated_by_user_id: int | None = None) -> models.BackupRecord:
+    now = datetime.now(UTC)
+    backup_dir = Path(get_settings().backup_dir)
+    if not backup_dir.is_absolute():
+        backup_dir = FRONTEND_DIR / backup_dir
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    filename = f"studentspend_backup_{now.strftime('%Y%m%d_%H%M%S')}.dump"
+    destination = backup_dir / filename
+    record = models.BackupRecord(
+        filename=str(destination),
+        status="running",
+        started_at=now,
+        size_bytes=0,
+        detail="",
+        initiated_by_user_id=initiated_by_user_id,
+    )
+    db.add(record)
+    db.flush()
+
+    try:
+        url = engine.url
+        if url.drivername.startswith("sqlite"):
+            source = url.database
+            if not source:
+                raise RuntimeError("SQLite database path is unavailable")
+            destination = destination.with_suffix(".sqlite3")
+            shutil.copy2(source, destination)
+            record.filename = str(destination)
+        elif url.drivername.startswith("postgresql"):
+            command = ["pg_dump", str(url), "-Fc", "-f", str(destination)]
+            subprocess.run(command, check=True, capture_output=True, text=True, timeout=120)
+        else:
+            raise RuntimeError(f"Unsupported database driver for backup: {url.drivername}")
+
+        record.status = "completed"
+        record.completed_at = datetime.now(UTC)
+        record.size_bytes = destination.stat().st_size
+        record.detail = "Backup completed"
+    except Exception as exc:
+        record.status = "failed"
+        record.completed_at = datetime.now(UTC)
+        record.detail = str(exc)
+        logger.error("Database backup failed: %s", exc)
+
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+def should_create_automatic_backup(db: Session) -> bool:
+    if not get_settings().backup_enabled:
+        return False
+    latest = db.scalar(
+        select(models.BackupRecord)
+        .where(models.BackupRecord.status == "completed")
+        .order_by(models.BackupRecord.completed_at.desc())
+    )
+    if latest is None or latest.completed_at is None:
+        return True
+    return as_aware_utc(latest.completed_at) <= datetime.now(UTC) - timedelta(hours=get_settings().backup_interval_hours)
+
+
+def next_report_run(frequency: str, from_time: datetime | None = None) -> datetime:
+    base = from_time or datetime.now(UTC)
+    if frequency == "daily":
+        return base + timedelta(days=1)
+    if frequency == "monthly":
+        return base + timedelta(days=30)
+    return base + timedelta(days=7)
+
+
+def send_scheduled_reports(db: Session) -> int:
+    now = datetime.now(UTC)
+    reports = db.scalars(
+        select(models.ScheduledReport)
+        .where(models.ScheduledReport.active == True, models.ScheduledReport.next_run_at <= now)
+        .limit(20)
+    ).all()
+    sent = 0
+    for report in reports:
+        expenses = db.scalars(
+            select(models.Expense)
+            .where(
+                models.Expense.user_id == report.user_id,
+                models.Expense.deleted == False,
+                models.Expense.archived == False,
+            )
+            .order_by(models.Expense.date.desc())
+        ).all()
+        csv_bytes = generate_expense_csv(expenses)
+        try:
+            send_email_with_attachment(
+                email=report.email,
+                subject="Your scheduled StudentSpend report",
+                body="Attached is your scheduled StudentSpend expense report.\n",
+                attachment_bytes=csv_bytes,
+                filename=f"scheduled_expenses_{now.strftime('%Y%m%d')}.csv",
+                mime_type="text/csv",
+            )
+            report.last_run_at = now
+            report.next_run_at = next_report_run(report.frequency, now)
+            sent += 1
+        except EmailDeliveryError as exc:
+            logger.error("Scheduled report failed: report_id=%s, error=%s", report.id, exc)
+            report.next_run_at = now + timedelta(hours=1)
+    db.commit()
+    return sent
+
+
+def enqueue_job(db: Session, task_name: str, payload: dict[str, object] | None = None, scheduled_for: datetime | None = None) -> models.QueueJob:
+    job = models.QueueJob(
+        task_name=task_name,
+        payload=payload or {},
+        status="queued",
+        scheduled_for=scheduled_for or datetime.now(UTC),
+    )
+    db.add(job)
+    db.flush()
+    return job
+
+
+def process_queue_jobs(db: Session, limit: int = 10) -> int:
+    now = datetime.now(UTC)
+    jobs = db.scalars(
+        select(models.QueueJob)
+        .where(models.QueueJob.status == "queued", models.QueueJob.scheduled_for <= now)
+        .order_by(models.QueueJob.scheduled_for.asc(), models.QueueJob.id.asc())
+        .limit(limit)
+    ).all()
+    processed = 0
+    for job in jobs:
+        job.status = "running"
+        job.started_at = datetime.now(UTC)
+        job.attempts += 1
+        db.commit()
+        try:
+            execute_queue_job(db, job)
+            job.status = "completed"
+            job.finished_at = datetime.now(UTC)
+            job.error = ""
+            observe_job(job.task_name, "completed")
+        except Exception as exc:
+            job.error = str(exc)
+            job.status = "failed" if job.attempts >= job.max_attempts else "queued"
+            job.scheduled_for = datetime.now(UTC) + timedelta(minutes=5)
+            observe_job(job.task_name, "failed")
+            logger.error("Queue job failed: job_id=%s task=%s error=%s", job.id, job.task_name, exc)
+        processed += 1
+        db.commit()
+    return processed
+
+
+def execute_queue_job(db: Session, job: models.QueueJob) -> None:
+    if job.task_name == "cleanup_expired_data":
+        cleanup_expired_data()
+    elif job.task_name == "database_backup":
+        create_database_backup(db)
+    elif job.task_name == "scheduled_reports":
+        send_scheduled_reports(db)
+    elif job.task_name == "archive_old_expenses":
+        cutoff = datetime.now(UTC).date() - timedelta(days=get_settings().archive_after_days)
+        archive_all_users_expenses(db, cutoff)
+    else:
+        raise ValueError(f"Unknown task: {job.task_name}")
+
+
+def archive_user_expenses(db: Session, user_id: int, archived_before: date_type, record_zero: bool = True) -> models.ArchiveRecord | None:
+    now = datetime.now(UTC)
+    count = db.query(models.Expense).filter(
+        models.Expense.user_id == user_id,
+        models.Expense.deleted == False,
+        models.Expense.archived == False,
+        models.Expense.date < archived_before,
+    ).update({"archived": True, "archived_at": now}, synchronize_session=False)
+    if not count and not record_zero:
+        return None
+    record = models.ArchiveRecord(
+        user_id=user_id,
+        archived_before=archived_before,
+        archived_count=int(count or 0),
+        status="completed",
+        created_at=now,
+    )
+    db.add(record)
+    return record
+
+
+def archive_all_users_expenses(db: Session, archived_before: date_type) -> int:
+    user_ids = db.scalars(select(models.User.id)).all()
+    total = 0
+    for user_id in user_ids:
+        record = archive_user_expenses(db, user_id, archived_before, record_zero=False)
+        if record is not None:
+            total += record.archived_count
+            invalidate_state_cache(user_id)
+    db.commit()
+    return total
+
+
+def is_feature_enabled(flag: models.FeatureFlag, user: models.User) -> bool:
+    if not flag.enabled:
+        return False
+    audience = flag.audience or {}
+    roles = audience.get("roles")
+    if isinstance(roles, list) and roles and user.role not in roles:
+        return False
+    user_ids = audience.get("user_ids")
+    if isinstance(user_ids, list) and user_ids and user.id not in user_ids:
+        return False
+    return True
+
+
+_maintenance_started = False
+
+
+def start_maintenance_threads() -> None:
+    global _maintenance_started
+    if _maintenance_started:
+        return
+    _maintenance_started = True
+    thread = threading.Thread(target=maintenance_loop, name="studentspend-maintenance", daemon=True)
+    thread.start()
+
+
+def maintenance_loop() -> None:
+    while True:
+        try:
+            with Session(engine) as db:
+                if should_create_automatic_backup(db):
+                    create_database_backup(db)
+                send_scheduled_reports(db)
+                process_queue_jobs(db)
+                cutoff = datetime.now(UTC).date() - timedelta(days=get_settings().archive_after_days)
+                archive_all_users_expenses(db, cutoff)
+        except Exception:
+            logger.exception("Maintenance loop failed")
+        time.sleep(max(60, get_settings().maintenance_interval_seconds))
+
+
 def reset_legacy_starter_goals() -> None:
     with Session(engine) as db:
         goals = db.scalars(
