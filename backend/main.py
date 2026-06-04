@@ -310,7 +310,7 @@ def signup(payload: schemas.SignupRequest, background_tasks: BackgroundTasks, db
     return {"access_token": create_access_token(user), "profile": user}
 
 
-@app.post("/api/auth/login", response_model=schemas.TokenRead)
+@app.post("/api/auth/login", response_model=schemas.AuthResponse)
 def login(payload: schemas.LoginRequest, request: Request, response: Response, background_tasks: BackgroundTasks, db: Session = Depends(get_db)) -> dict[str, object]:
     email = normalize_email(payload.email)
     client_ip = getattr(request.state, "client_ip", "unknown")
@@ -340,6 +340,14 @@ def login(payload: schemas.LoginRequest, request: Request, response: Response, b
 
     clear_failed_logins(payload.email)
     clear_persistent_failed_logins(db, user)
+
+    if user.two_factor_enabled:
+        security_logger.info("2FA challenge required: user_id=%s, email=%s, ip=%s", user.id, email, client_ip)
+        return {
+            "requires_two_factor": True,
+            "two_factor_token": create_two_factor_token(user),
+            "token_type": "bearer",
+        }
     
     # Trigger background maintenance
     background_tasks.add_task(cleanup_expired_data)
@@ -375,6 +383,103 @@ def login(payload: schemas.LoginRequest, request: Request, response: Response, b
         logger.exception("Failed to create refresh token")
 
     return {"access_token": token, "profile": user}
+
+
+@app.post("/api/auth/2fa/verify", response_model=schemas.TokenRead)
+def verify_two_factor_login(
+    payload: schemas.TwoFactorVerifyRequest,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+) -> dict[str, object]:
+    user_id = decode_two_factor_token(payload.two_factor_token)
+    user = db.get(models.User, user_id)
+    if user is None or not user.two_factor_enabled or not user.two_factor_secret:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid two-factor challenge")
+    if not verify_totp(user.two_factor_secret, payload.code):
+        security_logger.warning(
+            "Invalid 2FA code: user_id=%s, ip=%s",
+            user.id,
+            getattr(request.state, "client_ip", "unknown"),
+        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid two-factor code")
+
+    token = create_access_token(user)
+    try:
+        device = upsert_user_device(db, user, request)
+        plaintext, rt = create_refresh_token(db, user, device.id)
+        create_notification(
+            db,
+            user.id,
+            "security",
+            "New verified sign-in",
+            f"Two-factor sign-in from {device.ip_address or 'unknown IP'}.",
+        )
+        db.commit()
+        response.set_cookie(
+            key="refresh_token",
+            value=plaintext,
+            httponly=True,
+            secure=get_settings().cookie_secure,
+            samesite="strict",
+            path="/api/auth/refresh",
+            max_age=get_settings().refresh_token_days * 24 * 3600,
+        )
+    except Exception:
+        logger.exception("Failed to create refresh token after 2FA")
+
+    return {"access_token": token, "profile": user}
+
+
+@app.post("/api/auth/2fa/setup", response_model=schemas.TwoFactorSetupRead)
+def setup_two_factor(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> dict[str, str]:
+    require_verified_email(user)
+    if user.two_factor_enabled:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Two-factor authentication is already enabled")
+    secret = user.two_factor_secret or generate_totp_secret()
+    user.two_factor_secret = secret
+    db.commit()
+    return {"secret": secret, "otpauth_uri": provisioning_uri(secret, user.email)}
+
+
+@app.post("/api/auth/2fa/enable", response_model=schemas.ProfileRead)
+def enable_two_factor(
+    payload: schemas.TwoFactorEnableRequest,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> models.User:
+    require_verified_email(user)
+    if not user.two_factor_secret:
+        user.two_factor_secret = generate_totp_secret()
+    if not verify_totp(user.two_factor_secret, payload.code):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid two-factor code")
+    user.two_factor_enabled = True
+    create_notification(db, user.id, "security", "Two-factor authentication enabled", "Your account now requires a one-time code at sign-in.")
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@app.post("/api/auth/2fa/disable", response_model=schemas.ProfileRead)
+def disable_two_factor(
+    payload: schemas.TwoFactorDisableRequest,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> models.User:
+    require_verified_email(user)
+    if not verify_password(payload.password, user.password_hash):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid password")
+    if user.two_factor_secret and not verify_totp(user.two_factor_secret, payload.code):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid two-factor code")
+    user.two_factor_enabled = False
+    user.two_factor_secret = None
+    create_notification(db, user.id, "security", "Two-factor authentication disabled", "Your account no longer requires a one-time code at sign-in.")
+    db.commit()
+    db.refresh(user)
+    return user
 
 
 @app.post("/api/auth/verify-email", response_model=schemas.TokenRead)
@@ -868,10 +973,14 @@ def list_expenses(
     per_page: int = 20,
     search: str = "",
     category: str = "",
-    start_date: str = "",
-    end_date: str = "",
+    start_date: date_type | None = None,
+    end_date: date_type | None = None,
     min_amount: float = 0,
     max_amount: float = 0,
+    include_deleted: bool = False,
+    include_archived: bool = False,
+    sort_by: str = Query("date", pattern="^(date|amount|category|name)$"),
+    sort_dir: str = Query("desc", pattern="^(asc|desc)$"),
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ) -> dict[str, object]:
@@ -882,7 +991,13 @@ def list_expenses(
     per_page = min(max(1, per_page), 100)
 
     # Build query
-    query = select(models.Expense).where(models.Expense.user_id == user.id)
+    filters = [models.Expense.user_id == user.id]
+    if not include_deleted:
+        filters.append(models.Expense.deleted == False)
+    if not include_archived:
+        filters.append(models.Expense.archived == False)
+
+    query = select(models.Expense).where(*filters)
 
     # Apply search filter
     if search:
@@ -906,7 +1021,7 @@ def list_expenses(
         query = query.where(models.Expense.amount <= max_amount)
 
     # Get total count before pagination
-    count_query = select(models.Expense.id).where(models.Expense.user_id == user.id)
+    count_query = select(models.Expense.id).where(*filters)
     if search:
         count_query = count_query.where(models.Expense.name.ilike(search_pattern))
     if category:
@@ -923,7 +1038,14 @@ def list_expenses(
     total = db.scalar(select(func.count()).select_from(count_query.subquery()))
 
     # Order and paginate
-    query = query.order_by(models.Expense.date.desc(), models.Expense.id.desc())
+    sort_columns = {
+        "date": models.Expense.date,
+        "amount": models.Expense.amount,
+        "category": models.Expense.category,
+        "name": models.Expense.name,
+    }
+    sort_column = sort_columns[sort_by]
+    query = query.order_by(sort_column.asc() if sort_dir == "asc" else sort_column.desc(), models.Expense.id.desc())
     offset = (page - 1) * per_page
     query = query.offset(offset).limit(per_page)
 
@@ -937,6 +1059,67 @@ def list_expenses(
             "page": page,
             "per_page": per_page,
             "total": total,
+            "total_pages": total_pages,
+            "has_next": page < total_pages,
+            "has_prev": page > 1,
+        },
+    }
+
+
+@app.get("/api/search/expenses", response_model=schemas.ExpenseListRead)
+def search_expenses(
+    page: int = 1,
+    per_page: int = 20,
+    q: str = "",
+    categories: list[str] = Query(default=[]),
+    start_date: date_type | None = None,
+    end_date: date_type | None = None,
+    min_amount: Decimal | None = None,
+    max_amount: Decimal | None = None,
+    include_archived: bool = False,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> dict[str, object]:
+    require_verified_email(user)
+    page = max(1, page)
+    per_page = min(max(1, per_page), 100)
+
+    conditions = [
+        models.Expense.user_id == user.id,
+        models.Expense.deleted == False,
+    ]
+    if not include_archived:
+        conditions.append(models.Expense.archived == False)
+    if q:
+        pattern = f"%{q.strip()}%"
+        conditions.append(
+            models.Expense.name.ilike(pattern) | models.Expense.category.ilike(pattern)
+        )
+    if categories:
+        conditions.append(models.Expense.category.in_(categories))
+    if start_date:
+        conditions.append(models.Expense.date >= start_date)
+    if end_date:
+        conditions.append(models.Expense.date <= end_date)
+    if min_amount is not None:
+        conditions.append(models.Expense.amount >= min_amount)
+    if max_amount is not None:
+        conditions.append(models.Expense.amount <= max_amount)
+
+    base_query = select(models.Expense).where(*conditions)
+    total = db.scalar(select(func.count()).select_from(base_query.subquery())) or 0
+    expenses = db.scalars(
+        base_query.order_by(models.Expense.date.desc(), models.Expense.id.desc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+    ).all()
+    total_pages = (int(total) + per_page - 1) // per_page or 1
+    return {
+        "expenses": expenses,
+        "pagination": {
+            "page": page,
+            "per_page": per_page,
+            "total": int(total),
             "total_pages": total_pages,
             "has_next": page < total_pages,
             "has_prev": page > 1,
