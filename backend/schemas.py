@@ -109,6 +109,7 @@ class ProfileRead(BaseModel):
     gender: str
     email: str
     email_verified: bool
+    two_factor_enabled: bool = False
     role: str
     allowance: Decimal
     preferred_range: str
@@ -174,6 +175,14 @@ class TokenRead(BaseModel):
     profile: ProfileRead
 
 
+class AuthResponse(BaseModel):
+    access_token: str | None = None
+    token_type: str = "bearer"
+    profile: ProfileRead | None = None
+    requires_two_factor: bool = False
+    two_factor_token: str | None = None
+
+
 class VerifyEmailRequest(BaseModel):
     email: str = Field(min_length=3, max_length=255)
     code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
@@ -185,6 +194,25 @@ class ResendVerificationRequest(BaseModel):
 
 class ForgotPasswordRequest(BaseModel):
     email: str = Field(min_length=3, max_length=255)
+
+
+class TwoFactorSetupRead(BaseModel):
+    secret: str
+    otpauth_uri: str
+
+
+class TwoFactorEnableRequest(BaseModel):
+    code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
+
+
+class TwoFactorDisableRequest(BaseModel):
+    password: str = Field(min_length=1, max_length=128)
+    code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
+
+
+class TwoFactorVerifyRequest(BaseModel):
+    two_factor_token: str = Field(min_length=20)
+    code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
 
 
 class MessageRead(BaseModel):
@@ -255,6 +283,86 @@ class PaginationInfo(BaseModel):
 class ExpenseListRead(BaseModel):
     expenses: list[ExpenseRead]
     pagination: PaginationInfo
+
+
+class BackupRead(BaseModel):
+    id: int
+    filename: str
+    status: str
+    started_at: datetime
+    completed_at: datetime | None = None
+    size_bytes: int
+    detail: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ScheduledReportCreate(BaseModel):
+    email: str | None = Field(default=None, max_length=255)
+    frequency: str = Field(default="weekly", pattern=r"^(daily|weekly|monthly)$")
+    format: str = Field(default="csv", pattern=r"^(csv)$")
+
+
+class ScheduledReportRead(BaseModel):
+    id: int
+    email: str
+    frequency: str
+    format: str
+    active: bool
+    next_run_at: datetime
+    last_run_at: datetime | None = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class FeatureFlagUpsert(BaseModel):
+    description: str = ""
+    enabled: bool = False
+    audience: dict[str, object] = Field(default_factory=dict)
+
+
+class FeatureFlagRead(FeatureFlagUpsert):
+    key: str
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class QueueJobCreate(BaseModel):
+    task_name: str = Field(min_length=1, max_length=80)
+    payload: dict[str, object] = Field(default_factory=dict)
+    scheduled_for: datetime | None = None
+
+
+class QueueJobRead(BaseModel):
+    id: int
+    task_name: str
+    payload: dict[str, object]
+    status: str
+    attempts: int
+    max_attempts: int
+    scheduled_for: datetime
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+    error: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ArchiveRequest(BaseModel):
+    archived_before: date
+
+
+class ArchiveRead(BaseModel):
+    id: int
+    archived_before: date
+    archived_count: int
+    status: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
 
 class CategoryAnalytics(BaseModel):
     category: str
