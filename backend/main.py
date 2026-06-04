@@ -1530,7 +1530,7 @@ def toggle_report_schedule(
     if report is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report schedule not found")
     report.active = active
-    if active and report.next_run_at < datetime.now(UTC):
+    if active and as_aware_utc(report.next_run_at) < datetime.now(UTC):
         report.next_run_at = next_report_run(report.frequency)
     db.commit()
     db.refresh(report)
