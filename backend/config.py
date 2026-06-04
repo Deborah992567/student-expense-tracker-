@@ -30,6 +30,11 @@ class Settings(BaseSettings):
     smtp_use_ssl: bool = False
     smtp_timeout: int = 10
     exchange_rate_api_url: str = "https://open.er-api.com/v6/latest/"
+    backup_enabled: bool = True
+    backup_interval_hours: int = 24
+    backup_dir: str = "backend/backups"
+    maintenance_interval_seconds: int = 300
+    archive_after_days: int = 365
 
     model_config = SettingsConfigDict(env_file=ENV_FILE, env_file_encoding="utf-8")
 
