@@ -190,6 +190,7 @@ def startup() -> None:
     logger.info("Starting StudentSpend API server...")
     Base.metadata.create_all(bind=engine)
     ensure_user_profile_columns()
+    ensure_user_role_column()
     ensure_user_range_columns()
     ensure_security_columns()
     ensure_two_factor_columns()
@@ -2121,6 +2122,19 @@ def ensure_user_profile_columns() -> None:
         for column_name, column_definition in profile_columns.items():
             if column_name not in existing_columns:
                 connection.execute(text(f"ALTER TABLE users ADD COLUMN {column_name} {column_definition}"))
+
+
+def ensure_user_role_column() -> None:
+    inspector = inspect(engine)
+    if not inspector.has_table("users"):
+        return
+
+    existing_columns = {column["name"] for column in inspector.get_columns("users")}
+    if "role" in existing_columns:
+        return
+
+    with engine.begin() as connection:
+        connection.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'student'"))
 
 
 def ensure_user_range_columns() -> None:
