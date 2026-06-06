@@ -719,12 +719,7 @@ async function updateExpense(id, payload) {
 
 async function handleExportExpenses() {
   try {
-    const response = await fetch(`${apiBase}/api/expenses/export`, {
-      headers: { Authorization: `Bearer ${authToken}` },
-    });
-    if (!response.ok) throw new Error("Export failed");
-    
-    const blob = await response.blob();
+    const blob = await apiRequestBlob("/api/expenses/export");
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -732,20 +727,23 @@ async function handleExportExpenses() {
     document.body.appendChild(a);
     a.click();
     a.remove();
+    window.URL.revokeObjectURL(url);
+    showNotification("Expense CSV downloaded", "success");
   } catch (err) {
-    showNotification("Failed to export expenses. Please try again.", "error");
+    showNotification(err.message || "Failed to export expenses. Please try again.", "error");
   }
 }
 
 async function handleEmailStatement() {
   try {
+    const email = currentProfile?.email || state.profile?.email || currentUserEmail;
     const response = await apiRequest("/api/expenses/export/email", {
       method: "POST",
-      body: JSON.stringify({ email: state.profile.email }),
+      body: JSON.stringify({ email }),
     });
     showNotification(response.message || "Expense statement emailed successfully", "success");
   } catch (err) {
-    showNotification("Could not send the statement email. Please try again.", "error");
+    showNotification(err.message || "Could not send the statement email. Please try again.", "error");
   }
 }
 
@@ -1998,6 +1996,7 @@ async function hydrateFromApi() {
     categories = data.categories.map(normalizeCategory);
     state = {
       ...state,
+      profile: data.profile,
       categories,
       allowance: Number(data.profile.allowance),
       range: data.profile.preferred_range || "week",
@@ -2351,6 +2350,46 @@ async function apiRequest(path, options = {}) {
   }
 
   return response.json();
+}
+
+async function apiRequestBlob(path, options = {}) {
+  const { skipAuth = false, headers: customHeaders = {}, ...fetchOptions } = options;
+  const headers = { ...customHeaders };
+  if (authToken && !skipAuth) {
+    headers.Authorization = `Bearer ${authToken}`;
+  }
+
+  let response;
+  try {
+    response = await fetch(`${apiBase}${path}`, {
+      credentials: fetchOptions.credentials ?? "include",
+      headers,
+      ...fetchOptions,
+    });
+  } catch (error) {
+    throw new Error(`Could not reach the API at ${apiBase}. Make sure the backend is running.`);
+  }
+
+  if (response.status === 401) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      if (authToken && !skipAuth) headers.Authorization = `Bearer ${authToken}`;
+      response = await fetch(`${apiBase}${path}`, {
+        credentials: fetchOptions.credentials ?? "include",
+        headers,
+        ...fetchOptions,
+      });
+    }
+  }
+
+  if (!response.ok) {
+    const message = await readApiError(response);
+    const error = new Error(message || `API request failed: ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+
+  return response.blob();
 }
 
 /**
