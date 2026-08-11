@@ -1956,6 +1956,26 @@ def create_database_backup(db: Session, initiated_by_user_id: int | None = None)
                     )
             command = [resolved_pg_dump, str(url), "-Fc", "-f", str(destination)]
             subprocess.run(command, check=True, capture_output=True, text=True, timeout=120)
+        elif url.drivername.startswith("mysql"):
+            dump_tool = shutil.which("mariadb-dump") or shutil.which("mysqldump")
+            if not dump_tool:
+                raise RuntimeError(
+                    "MySQL/MariaDB backup requires mariadb-dump or mysqldump on PATH."
+                )
+            destination = destination.with_suffix(".sql")
+            record.filename = str(destination)
+            command = [
+                dump_tool,
+                f"--user={url.username or 'root'}",
+                f"--password={url.password or ''}",
+                "--host=localhost",
+                "--single-transaction",
+                "--routines",
+                "--triggers",
+                url.database,
+            ]
+            with open(destination, "w") as f:
+                subprocess.run(command, check=True, stdout=f, stderr=subprocess.PIPE, text=True, timeout=120)
         else:
             raise RuntimeError(f"Unsupported database driver for backup: {url.drivername}")
 
@@ -2309,7 +2329,7 @@ def ensure_database_indexes() -> None:
         "CREATE INDEX IF NOT EXISTS ix_expenses_user_category_date ON expenses (user_id, category, date)",
         "CREATE INDEX IF NOT EXISTS ix_refresh_tokens_user_revoked_expires ON refresh_tokens (user_id, revoked, expires_at)",
         "CREATE INDEX IF NOT EXISTS ix_user_devices_user_last_seen ON user_devices (user_id, last_seen_at)",
-        "CREATE INDEX IF NOT EXISTS ix_notifications_user_read_created ON notifications (user_id, read, created_at)",
+        "CREATE INDEX IF NOT EXISTS ix_notifications_user_read_created ON notifications (user_id, `read`, created_at)",
         "CREATE INDEX IF NOT EXISTS ix_scheduled_reports_active_next_run ON scheduled_reports (active, next_run_at)",
         "CREATE INDEX IF NOT EXISTS ix_queue_jobs_status_scheduled ON queue_jobs (status, scheduled_for)",
         "CREATE INDEX IF NOT EXISTS ix_expenses_user_archived_date ON expenses (user_id, archived, date)",

@@ -25,7 +25,7 @@ def ensure_database_exists(url: str) -> None:
     server_url = parsed.set(database="")
     logger.info("Ensuring MySQL database exists: %s", database_name)
     try:
-        engine_for_create = create_engine(str(server_url), pool_pre_ping=True)
+        engine_for_create = create_engine(server_url, pool_pre_ping=True)
         with engine_for_create.connect() as conn:
             conn.execute(
                 text(
