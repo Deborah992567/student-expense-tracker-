@@ -4,78 +4,206 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Smart Student Expense Tracker</title>
-    <link rel="stylesheet" href="styles.css?v=20260526" />
+    <link rel="stylesheet" href="styles.css?v=20260606" />
   </head>
   <body>
     <section class="auth-screen" id="authScreen">
-      <div class="auth-card">
-        <div class="brand auth-brand">
-          <div class="brand-mark" aria-hidden="true">S</div>
-          <div>
-            <strong>StudentSpend</strong>
-            <span>Private student budget workspace</span>
+      <div class="auth-layout">
+        <div class="auth-landing" aria-label="StudentSpend overview">
+          <div class="brand auth-brand">
+            <div class="brand-mark auth-logo" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 7.5h16v10H4z"></path>
+                <path d="M7 10h4"></path>
+                <path d="M17 14.5h.01"></path>
+                <path d="M6.5 7.5V5.8c0-.9.7-1.6 1.6-1.6h7.8c.9 0 1.6.7 1.6 1.6v1.7"></path>
+              </svg>
+            </div>
+            <div>
+              <strong>StudentSpend</strong>
+              <span>Smart budget lab</span>
+            </div>
           </div>
-        </div>
-        <div>
-          <p class="eyebrow">Account access</p>
-          <div class="auth-title-row">
-            <button id="authBackButton" class="back-button hidden" type="button" aria-label="Back to signup">←</button>
-            <h1 id="authTitle">Sign in</h1>
+
+          <div class="auth-hero-copy">
+            <p class="eyebrow">Built for student money moves</p>
+            <h1>Track spending before it tracks you.</h1>
+            <p>Plan your allowance, scan receipts, watch savings goals, and keep every campus expense in one clean workspace.</p>
           </div>
-        </div>
-        <form id="authForm" class="stacked-form">
-          <div id="authNit ameField" class="form-row hidden">
-            <label>
-              First name
-              <input id="authFirstName" type="text" autocomplete="given-name" />
-            </label>
-            <label>
-              Last name
-              <input id="authLastName" type="text" autocomplete="family-name" />
-            </label>
-          </div>
-          <label id="authGenderField" class="hidden">
-            Gender
-            <select id="authGender">
-              <option value="">Select gender</option>
-              <option value="female">Female</option>
-              <option value="male">Male</option>
-              <option value="non_binary">Non-binary</option>
-              <option value="prefer_not_to_say">Prefer not to say</option>
-            </select>
-          </label>
-          <label>
-            Email
-            <input id="authEmail" type="email" autocomplete="email" required />
-          </label>
-          <label>
-            Password
-            <div class="password-input-wrapper">
-              <input id="authPassword" type="password" autocomplete="current-password" required />
-              <button type="button" class="password-toggle" id="passwordToggle" aria-label="Toggle password visibility" tabindex="-1">
-                <svg class="eye-icon eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                  <circle cx="12" cy="12" r="3"></circle>
+
+          <div class="auth-feature-grid" aria-label="StudentSpend features">
+            <article class="auth-feature">
+              <span class="feature-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 3v18h18"></path>
+                  <path d="m7 15 4-4 3 3 5-6"></path>
                 </svg>
-                <svg class="eye-icon eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                  <line x1="1" y1="1" x2="23" y2="23"></line>
+              </span>
+              <strong>Live budget pulse</strong>
+              <span>See what is safe to spend this week.</span>
+            </article>
+            <article class="auth-feature">
+              <span class="feature-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M7 3h10v18l-2-1-2 1-2-1-2 1-2-1z"></path>
+                  <path d="M9 7h6"></path>
+                  <path d="M9 11h6"></path>
+                  <path d="M9 15h4"></path>
+                </svg>
+              </span>
+              <strong>Receipt capture</strong>
+              <span>Turn quick purchases into organized records.</span>
+            </article>
+            <article class="auth-feature">
+              <span class="feature-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 3v18"></path>
+                  <path d="M17 7H9.5a3.5 3.5 0 0 0 0 7H14a3 3 0 0 1 0 6H6"></path>
+                </svg>
+              </span>
+              <strong>Savings goals</strong>
+              <span>Keep rent, projects, and emergency cash visible.</span>
+            </article>
+          </div>
+        </div>
+
+        <div class="auth-card">
+          <div class="mobile-auth-brand brand auth-brand">
+            <div class="brand-mark auth-logo" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 7.5h16v10H4z"></path>
+                <path d="M7 10h4"></path>
+                <path d="M17 14.5h.01"></path>
+                <path d="M6.5 7.5V5.8c0-.9.7-1.6 1.6-1.6h7.8c.9 0 1.6.7 1.6 1.6v1.7"></path>
+              </svg>
+            </div>
+            <div>
+              <strong>StudentSpend</strong>
+              <span>Smart budget lab</span>
+            </div>
+          </div>
+
+          <div class="auth-heading">
+            <p class="eyebrow">Secure access</p>
+            <div class="auth-title-row">
+              <button id="authBackButton" class="back-button hidden" type="button" aria-label="Back to signup">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="m15 18-6-6 6-6"></path>
                 </svg>
               </button>
+              <h2 id="authTitle">Sign in</h2>
             </div>
-          </label>
-          <div class="forgot-password-row">
-            <a href="#" id="forgotPasswordLink" class="text-button">Forgot password?</a>
+            <p id="authSubtitle" class="auth-subtitle">Pick up your budget, goals, and spending streaks.</p>
           </div>
-          <label id="authCodeField" class="hidden">
-            Verification code
-            <input id="authCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" />
-          </label>
-          <button id="authSubmit" class="primary-button" type="submit">Sign in</button>
-        </form>
-        <p id="authMessage" class="auth-message"></p>
-        <button id="resendCodeButton" class="text-button hidden" type="button">Resend code</button>
-        <button id="authModeToggle" class="text-button" type="button">Create an account</button>
+
+          <form id="authForm" class="stacked-form auth-form">
+            <div id="authNameField" class="form-row hidden">
+              <label>
+                First name
+                <span class="field-shell">
+                  <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M20 21a8 8 0 0 0-16 0"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                  <input id="authFirstName" type="text" autocomplete="given-name" />
+                </span>
+              </label>
+              <label>
+                Last name
+                <span class="field-shell">
+                  <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M20 21a8 8 0 0 0-16 0"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                  <input id="authLastName" type="text" autocomplete="family-name" />
+                </span>
+              </label>
+            </div>
+            <label id="authGenderField" class="hidden">
+              Gender
+              <span class="field-shell">
+                <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0z"></path>
+                  <path d="M12 15v6"></path>
+                  <path d="M9 18h6"></path>
+                </svg>
+                <select id="authGender">
+                  <option value="">Select gender</option>
+                  <option value="female">Female</option>
+                  <option value="male">Male</option>
+                  <option value="non_binary">Non-binary</option>
+                  <option value="prefer_not_to_say">Prefer not to say</option>
+                </select>
+              </span>
+            </label>
+            <label id="authEmailField">
+              Email
+              <span class="field-shell">
+                <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M4 4h16v16H4z"></path>
+                  <path d="m22 6-10 7L2 6"></path>
+                </svg>
+                <input id="authEmail" type="email" autocomplete="email" required />
+              </span>
+            </label>
+            <label>
+              Password
+              <div class="password-input-wrapper field-shell">
+                <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="4" y="11" width="16" height="9" rx="2"></rect>
+                  <path d="M8 11V8a4 4 0 0 1 8 0v3"></path>
+                </svg>
+                <input id="authPassword" type="password" autocomplete="current-password" required />
+                <button type="button" class="password-toggle" id="passwordToggle" aria-label="Toggle password visibility" tabindex="-1">
+                  <svg class="eye-icon eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                  <svg class="eye-icon eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                  </svg>
+                </button>
+              </div>
+            </label>
+            <label id="authConfirmField" class="hidden">
+              Confirm new password
+              <span class="field-shell">
+                <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="4" y="11" width="16" height="9" rx="2"></rect>
+                  <path d="M8 11V8a4 4 0 0 1 8 0v3"></path>
+                </svg>
+                <input id="authConfirmPassword" type="password" autocomplete="new-password" />
+              </span>
+            </label>
+            <div class="forgot-password-row">
+              <a href="#" id="forgotPasswordLink" class="text-button">Forgot password?</a>
+            </div>
+            <label id="authCodeField" class="hidden">
+              Verification code
+              <span class="field-shell">
+                <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                  <path d="m9 12 2 2 4-4"></path>
+                </svg>
+                <input id="authCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" />
+              </span>
+            </label>
+            <button id="authSubmit" class="primary-button auth-submit" type="submit">
+              <span>Sign in</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M5 12h14"></path>
+                <path d="m13 6 6 6-6 6"></path>
+              </svg>
+            </button>
+          </form>
+          <p id="authMessage" class="auth-message"></p>
+          <button id="resendCodeButton" class="text-button hidden" type="button">Resend code</button>
+          <div class="auth-switch">
+            <span>New here?</span>
+            <button id="authModeToggle" class="text-button" type="button">Create an account</button>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -535,6 +663,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-    <script src="app.js?v=20260526"></script>
+    <script src="app.js?v=20260606"></script>
   </body>
 </html>

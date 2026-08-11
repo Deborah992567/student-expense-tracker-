@@ -3,3 +3,11 @@ __pycache__/
 .venv/
 venv/
 backend/.env
+
+# Runtime artifacts
+logs/
+*.log
+*.db
+*.sqlite3
+backend/backups/
+backend/student_expense.db

@@ -39,6 +39,20 @@ class ExpenseRead(ExpenseCreate):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ExpenseUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=160)
+    amount: Decimal | None = Field(default=None, gt=0)
+    category: str | None = Field(default=None, min_length=1, max_length=80)
+    date: date | None = None
+
+    @field_validator("date")
+    @classmethod
+    def date_not_in_far_future(cls, v: date | None) -> date | None:
+        if v is not None and v > datetime.now(UTC).date():
+            raise ValueError("Expense date cannot be in the future")
+        return v
+
+
 class GoalUpdate(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     target: Decimal = Field(gt=0)
@@ -194,6 +208,20 @@ class ResendVerificationRequest(BaseModel):
 
 class ForgotPasswordRequest(BaseModel):
     email: str = Field(min_length=3, max_length=255)
+
+
+class PasswordResetRequest(BaseModel):
+    token: str = Field(min_length=20, max_length=1024)
+    new_password: str = Field(min_length=8, max_length=72)
+
+    @field_validator("new_password")
+    @classmethod
+    def new_password_must_be_reasonably_strong(cls, value: str) -> str:
+        has_letter = any(character.isalpha() for character in value)
+        has_number = any(character.isdigit() for character in value)
+        if not has_letter or not has_number:
+            raise ValueError("Password must include at least one letter and one number")
+        return value
 
 
 class TwoFactorSetupRead(BaseModel):

@@ -31,6 +31,8 @@ from backend.auth import (
     check_login_rate_limit,
     clear_failed_logins,
     create_access_token,
+    create_password_reset_token,
+    decode_password_reset_token,
     get_current_user,
     hash_password,
     normalize_email,
@@ -54,6 +56,7 @@ from backend.email_verification import (
     create_verification_code,
     send_email_with_attachment,
     send_plain_email,
+    send_password_reset_email,
     send_verification_email,
     hash_verification_code,
     latest_pending_code,
@@ -375,8 +378,8 @@ def login(payload: schemas.LoginRequest, request: Request, response: Response, b
                 key="refresh_token",
                 value=plaintext,
                 httponly=True,
-                    secure=get_settings().cookie_secure,
-                    samesite="strict",
+                secure=get_settings().cookie_secure,
+                samesite="strict",
                 path="/api/auth/refresh",
                 max_age=get_settings().refresh_token_days * 24 * 3600,
             )
@@ -568,8 +571,8 @@ def refresh_token(response: Response, request: Request, db: Session = Depends(ge
             key="refresh_token",
             value=plaintext,
             httponly=True,
-                secure=get_settings().cookie_secure,
-                samesite="strict",
+            secure=get_settings().cookie_secure,
+            samesite="strict",
             path="/api/auth/refresh",
             max_age=get_settings().refresh_token_days * 24 * 3600,
         )
@@ -637,14 +640,48 @@ def list_devices(
 
 
 @app.post("/api/auth/forgot-password", response_model=schemas.MessageRead)
-def forgot_password(payload: schemas.ForgotPasswordRequest, db: Session = Depends(get_db)) -> dict[str, str]:
+def forgot_password(
+    payload: schemas.ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+) -> dict[str, str]:
     email = normalize_email(payload.email)
     user = db.scalar(select(models.User).where(models.User.email == email))
 
+    if user is not None:
+        token = create_password_reset_token(user)
+        background_tasks.add_task(
+            send_password_reset_email,
+            user.email,
+            token,
+            user.first_name or user.name,
+        )
+
     # Always return the same message regardless of whether the email exists
     # This prevents email enumeration attacks
-    # TODO: Implement password reset token generation and email delivery
     return {"message": "If an account exists with this email, password reset instructions will be sent."}
+
+
+@app.post("/api/auth/reset-password", response_model=schemas.MessageRead)
+def reset_password(
+    payload: schemas.PasswordResetRequest,
+    db: Session = Depends(get_db),
+) -> dict[str, str]:
+    try:
+        user_id = decode_password_reset_token(payload.token)
+    except HTTPException:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired password reset link")
+
+    user = db.get(models.User, user_id)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired password reset link")
+
+    user.password_hash = hash_password(payload.new_password)
+    revoke_all_user_tokens(db, user)
+    db.commit()
+    logger.info("Password reset completed: user_id=%s", user.id)
+    security_logger.info("Password reset completed: user_id=%s", user.id)
+    return {"message": "Password updated. You can now sign in with your new password."}
 
 
 @app.get("/api/state", response_model=schemas.AppStateRead)
@@ -894,6 +931,32 @@ def soft_delete_expense(
     db.commit()
     db.refresh(expense)
     logger.info("Expense soft-deleted: expense_id=%s, user_id=%s", expense.id, user.id)
+    invalidate_state_cache(user.id)
+    return expense
+
+
+@app.patch("/api/expenses/{expense_id}", response_model=schemas.ExpenseRead)
+def update_expense(
+    expense_id: int,
+    payload: schemas.ExpenseUpdate,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> models.Expense:
+    require_verified_email(user)
+    expense = db.scalar(
+        select(models.Expense).where(models.Expense.id == expense_id, models.Expense.user_id == user.id)
+    )
+    if expense is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Expense not found")
+    if expense.deleted:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Expense is in the recycle bin and cannot be edited")
+
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(expense, field, value)
+
+    db.commit()
+    db.refresh(expense)
+    logger.info("Expense updated: expense_id=%s, user_id=%s", expense.id, user.id)
     invalidate_state_cache(user.id)
     return expense
 

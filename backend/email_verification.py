@@ -169,3 +169,18 @@ def send_email_with_attachment(
     except (OSError, smtplib.SMTPException) as exc:
         logger.error("Failed to send statement email to %s: %s", email, str(exc))
         raise EmailDeliveryError("Statement email could not be sent") from exc
+
+
+def send_password_reset_email(email: str, token: str, recipient_name: str) -> None:
+    settings = get_settings()
+    reset_url = f"{settings.frontend_url.rstrip('/')}/?reset_token={token}"
+    subject = "Reset your StudentSpend password"
+    body = (
+        f"Hi {recipient_name},\n\n"
+        "We received a request to reset your StudentSpend password.\n"
+        f"Open the link below to choose a new password. It expires in 30 minutes.\n\n"
+        f"{reset_url}\n\n"
+        "If you didn't request this, you can safely ignore this email.\n\n"
+        "Thanks,\nThe StudentSpend team"
+    )
+    send_plain_email(email, subject, body)

@@ -90,6 +90,7 @@ let settingsSaveTimer = null;
 let authMode = "login";
 let authToken = localStorage.getItem(tokenKey);
 let pendingVerificationEmail = localStorage.getItem(verificationEmailKey) || "";
+let pendingResetToken = "";
 let editingExpenseId = null;
 let editingRecurringId = null;
 const sessionMessageElem = document.querySelector("#sessionMessage");
@@ -98,6 +99,7 @@ const authScreen = document.querySelector("#authScreen");
 const appShell = document.querySelector("#appShell");
 const authForm = document.querySelector("#authForm");
 const authTitle = document.querySelector("#authTitle");
+const authSubtitle = document.querySelector("#authSubtitle");
 const authNameField = document.querySelector("#authNameField");
 const authGenderField = document.querySelector("#authGenderField");
 const authFirstName = document.querySelector("#authFirstName");
@@ -105,6 +107,9 @@ const authLastName = document.querySelector("#authLastName");
 const authGender = document.querySelector("#authGender");
 const authEmail = document.querySelector("#authEmail");
 const authPassword = document.querySelector("#authPassword");
+const authConfirmField = document.querySelector("#authConfirmField");
+const authConfirmPassword = document.querySelector("#authConfirmPassword");
+const authEmailField = document.querySelector("#authEmailField");
 const authCodeField = document.querySelector("#authCodeField");
 const authCode = document.querySelector("#authCode");
 const authSubmit = document.querySelector("#authSubmit");
@@ -115,6 +120,7 @@ const resendCodeButton = document.querySelector("#resendCodeButton");
 const logoutButton = document.querySelector("#logoutButton");
 const passwordToggle = document.querySelector("#passwordToggle");
 const forgotPasswordLink = document.querySelector("#forgotPasswordLink");
+const forgotPasswordRow = forgotPasswordLink?.closest(".forgot-password-row");
 const themeToggle = document.querySelector("#themeToggle");
 const expenseForm = document.querySelector("#expenseForm");
 const goalForm = document.querySelector("#goalForm");
@@ -184,7 +190,7 @@ function getApiBase() {
 async function init() {
   authForm.addEventListener("submit", handleAuthSubmit);
   authModeToggle.addEventListener("click", toggleAuthMode);
-  authBackButton.addEventListener("click", returnToSignup);
+  authBackButton.addEventListener("click", handleAuthBack);
   resendCodeButton.addEventListener("click", resendVerificationCode);
   const logoutButtonElement = document.querySelector("#logoutButton");
   if (logoutButtonElement) {
@@ -311,6 +317,18 @@ async function init() {
   // Sync period buttons with state
   syncPeriodButtons();
 
+  // If the user arrived via a password reset link, show the reset form
+  const resetToken = new URLSearchParams(window.location.search).get("reset_token");
+  if (resetToken) {
+    pendingResetToken = resetToken;
+    authToken = null;
+    localStorage.removeItem(tokenKey);
+    authMode = "reset";
+    showAuth();
+    renderAuthMode();
+    return;
+  }
+
   renderAuthMode();
 
   if (!authToken) {
@@ -334,6 +352,11 @@ async function handleAuthSubmit(event) {
   try {
     if (authMode === "verify") {
       await verifyEmailCode();
+      return;
+    }
+
+    if (authMode === "reset") {
+      await submitPasswordReset();
       return;
     }
 
@@ -379,7 +402,53 @@ async function handleAuthSubmit(event) {
   } catch (error) {
     showNotification(error.message || "Could not sign in. Check your details and try again.", "error");
   } finally {
-    toggleLoading(authSubmit, false, authMode === "verify" ? "Verify account" : (authMode === "signup" ? "Create account" : "Sign in"));
+    toggleLoading(authSubmit, false, authMode === "verify" ? "Verify account" : authMode === "reset" ? "Update password" : (authMode === "signup" ? "Create account" : "Sign in"));
+  }
+}
+
+function handleAuthBack() {
+  if (authMode === "verify") {
+    returnToSignup();
+    return;
+  }
+  if (authMode === "reset") {
+    pendingResetToken = "";
+    authPassword.value = "";
+    authConfirmPassword.value = "";
+    authMode = "login";
+    renderAuthMode();
+    return;
+  }
+  returnToSignup();
+}
+
+async function submitPasswordReset() {
+  const password = authPassword.value;
+  const confirm = authConfirmPassword.value;
+
+  if (password.length < 8) {
+    authMessage.textContent = "Password must be at least 8 characters.";
+    return;
+  }
+  if (password !== confirm) {
+    authMessage.textContent = "Passwords do not match.";
+    return;
+  }
+
+  try {
+    const data = await apiRequest("/api/auth/reset-password", {
+      method: "POST",
+      skipAuth: true,
+      body: JSON.stringify({ token: pendingResetToken, new_password: password }),
+    });
+    pendingResetToken = "";
+    authPassword.value = "";
+    authConfirmPassword.value = "";
+    authMessage.textContent = data.message || "Password updated. You can now sign in.";
+    authMode = "login";
+    renderAuthMode();
+  } catch (error) {
+    authMessage.textContent = error.message || "Could not reset your password. Please try again.";
   }
 }
 
@@ -402,26 +471,52 @@ function returnToSignup() {
 function renderAuthMode() {
   const isSignup = authMode === "signup";
   const isVerify = authMode === "verify";
-  authTitle.textContent = isVerify ? "Verify email" : isSignup ? "Create account" : "Sign in";
-  authSubmit.textContent = isVerify ? "Verify account" : isSignup ? "Create account" : "Sign in";
-  authModeToggle.textContent = isSignup ? "I already have an account" : "Create an account";
+  const isReset = authMode === "reset";
+  const submitLabel = isVerify ? "Verify account" : isReset ? "Update password" : isSignup ? "Create account" : "Sign in";
+  authTitle.textContent = isVerify ? "Verify email" : isReset ? "Set a new password" : isSignup ? "Create your account" : "Welcome back";
+  if (authSubtitle) {
+    authSubtitle.textContent = isVerify
+      ? "Enter the six-digit code we sent so your dashboard stays protected."
+      : isReset
+        ? "Choose a strong new password for your account."
+        : isSignup
+          ? "Start with a clean budget workspace built for student life."
+          : "Pick up your budget, goals, and spending streaks.";
+  }
+  setAuthSubmitLabel(submitLabel);
+  authModeToggle.textContent = isSignup ? "Sign in instead" : "Create an account";
   authNameField.classList.toggle("hidden", !isSignup);
   authGenderField.classList.toggle("hidden", !isSignup);
   authCodeField.classList.toggle("hidden", !isVerify);
   resendCodeButton.classList.toggle("hidden", !isVerify);
-  authBackButton.classList.toggle("hidden", !isVerify);
-  authModeToggle.classList.toggle("hidden", isVerify);
+  authBackButton.classList.toggle("hidden", !(isVerify || isReset));
+  authModeToggle.classList.toggle("hidden", isVerify || isReset);
+  forgotPasswordRow?.classList.toggle("hidden", !(!isSignup && !isVerify && !isReset));
+  authEmailField?.classList.toggle("hidden", isReset);
+  authConfirmField?.classList.toggle("hidden", !isReset);
   authFirstName.required = isSignup;
   authLastName.required = isSignup;
   authGender.required = isSignup;
+  authEmail.required = !isReset;
   authEmail.readOnly = isVerify;
   authPassword.required = !isVerify;
-  authPassword.parentElement.classList.toggle("hidden", isVerify);
+  authPassword.closest("label")?.classList.toggle("hidden", isVerify);
+  authConfirmPassword.required = isReset;
   authCode.required = isVerify;
-  authPassword.autocomplete = isSignup ? "new-password" : "current-password";
+  authPassword.autocomplete = (isSignup || isReset) ? "new-password" : "current-password";
   if (isVerify && pendingVerificationEmail) {
     authEmail.value = pendingVerificationEmail;
   }
+}
+
+function setAuthSubmitLabel(label) {
+  authSubmit.innerHTML = `
+    <span>${label}</span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M5 12h14"></path>
+      <path d="m13 6 6 6-6 6"></path>
+    </svg>
+  `;
 }
 
 function showAuth() {
@@ -846,11 +941,11 @@ function renderRecycleBin(items) {
     .map(
       (expense) => `
         <article class="expense-item">
-          <strong>${expense.name}<span>${formatMoney(expense.amount)}</span></strong>
-          <span>${expense.category} · ${formatDate(expense.date)} · deleted ${expense.deleted_at ? new Date(expense.deleted_at).toLocaleString() : ''}</span>
+          <strong>${escapeHtml(expense.name)}<span>${formatMoney(expense.amount)}</span></strong>
+          <span>${escapeHtml(expense.category)} · ${formatDate(expense.date)}</span>
           <div class="expense-actions">
-            <button class="text-button restore-expense" data-id="${expense.id}" type="button">Restore</button>
-            <button class="text-button permanent-delete" data-id="${expense.id}" type="button">Delete permanently</button>
+            <button class="text-button edit-expense" data-id="${expense.id}" type="button">Edit</button>
+            <button class="text-button delete-expense" data-id="${expense.id}" type="button">Delete</button>
           </div>
         </article>
       `,
@@ -1036,7 +1131,7 @@ async function handleReceiptUpload(event) {
 
   const reader = new FileReader();
   reader.onload = () => {
-    document.querySelector("#receiptPreview").innerHTML = `<img src="${reader.result}" alt="Uploaded receipt preview" />`;
+    document.querySelector("#receiptPreview").innerHTML = `<img src="${escapeHtml(reader.result)}" alt="Uploaded receipt preview" />`;
   };
   reader.readAsDataURL(file);
 
@@ -1048,8 +1143,8 @@ async function handleReceiptUpload(event) {
 
   scannedExpense = await scanReceipt(file);
   document.querySelector("#scanResult").innerHTML = `
-    <strong>${scannedExpense.name} · ${formatMoney(scannedExpense.amount)}</strong>
-    <span>${scannedExpense.category} detected from ${scannedExpense.source}, dated ${formatDate(scannedExpense.date)}.</span>
+    <strong>${escapeHtml(scannedExpense.name)} · ${formatMoney(scannedExpense.amount)}</strong>
+    <span>${escapeHtml(scannedExpense.category)} detected from ${escapeHtml(scannedExpense.source)}, dated ${formatDate(scannedExpense.date)}.</span>
     <span>Click add scanned expense to save it automatically.</span>
   `;
   addScannedExpense.disabled = false;
@@ -1221,7 +1316,7 @@ function render() {
 function renderCategoryOptions() {
   const selected = categorySelect.value;
   categorySelect.innerHTML = categories
-    .map((category) => `<option value="${category.name}">${category.name}</option>`)
+    .map((category) => `<option value="${escapeHtml(category.name)}">${escapeHtml(category.name)}</option>`)
     .join("");
   if (selected && categories.some((category) => category.name === selected)) {
     categorySelect.value = selected;
@@ -1229,7 +1324,7 @@ function renderCategoryOptions() {
   if (recurringCategory) {
     const current = recurringCategory.value;
     recurringCategory.innerHTML = categories
-      .map((category) => `<option value="${category.name}">${category.name}</option>`)
+      .map((category) => `<option value="${escapeHtml(category.name)}">${escapeHtml(category.name)}</option>`)
       .join("");
     if (current && categories.some((category) => category.name === current)) {
       recurringCategory.value = current;
@@ -1267,8 +1362,8 @@ function renderRecurringExpenses() {
       return `
         <article class="expense-item">
           <div>
-          <strong>${item.name}<span>${formatMoney(item.amount)}</span></strong>
-          <span>${item.category} · ${schedule}</span>
+          <strong>${escapeHtml(item.name)}<span>${formatMoney(item.amount)}</span></strong>
+          <span>${escapeHtml(item.category)} · ${schedule}</span>
           ${lastGenerated}
           </div>
           <div class="recurring-actions">
@@ -1382,8 +1477,8 @@ function renderCategoryBars(totals, totalSpent) {
       const width = Math.round((amount / Math.max(totalSpent, 1)) * 100);
       return `
         <div class="bar-row">
-          <strong>${category.name}</strong>
-          <div class="track"><div class="fill" style="--width:${width}%;--color:${category.color}"></div></div>
+          <strong>${escapeHtml(category.name)}</strong>
+          <div class="track"><div class="fill" style="--width:${width}%;--color:${escapeHtml(category.color)}"></div></div>
           <span>${formatMoney(amount)}</span>
         </div>
       `;
@@ -1424,9 +1519,9 @@ function renderBudgets(totals) {
       const status = hasBudget && percent > 100 ? "danger" : hasBudget && percent > 80 ? "warning" : "";
       return `
         <article class="budget-item ${status}">
-          <strong>${category.name}<span>${formatMoney(spent)} / ${formatMoney(category.budget)}</span></strong>
+          <strong>${escapeHtml(category.name)}<span>${formatMoney(spent)} / ${formatMoney(category.budget)}</span></strong>
           <div class="budget-progress">
-            <div class="track"><div class="fill" style="--width:${Math.min(percent, 100)}%;--color:${category.color}"></div></div>
+            <div class="track"><div class="fill" style="--width:${Math.min(percent, 100)}%;--color:${escapeHtml(category.color)}"></div></div>
             <span>${hasBudget ? `${percent}%` : "Not set"}</span>
           </div>
           <div class="budget-presets">
@@ -1442,7 +1537,7 @@ function renderBudgets(totals) {
               step="1"
               value="${category.budget}"
               data-budget-index="${index}"
-              aria-label="${category.name} budget limit"
+              aria-label="${escapeHtml(category.name)} budget limit"
             />
           </label>
         </article>
@@ -1759,8 +1854,8 @@ function renderInsights() {
     .map(
       (insight) => `
         <article class="insight">
-          <strong>${insight.title}</strong>
-          <span>${insight.body}</span>
+          <strong>${escapeHtml(insight.title)}</strong>
+          <span>${escapeHtml(insight.body)}</span>
         </article>
       `,
     )
@@ -1772,7 +1867,7 @@ function renderInsights() {
         <h4>Category Breakdown</h4>
         ${state.categoryAnalytics.map(a => `
           <div class="analytics-row">
-            <span>${a.category} (${a.transaction_count} tx)</span>
+            <span>${escapeHtml(a.category)} (${a.transaction_count} tx)</span>
             <strong>${formatMoney(a.total_amount)}</strong>
           </div>
         `).join("")}
@@ -2092,7 +2187,7 @@ function populateFilterCategories() {
   if (!filterCategory) return;
   const currentValue = filterCategory.value;
   filterCategory.innerHTML = '<option value="">All categories</option>' +
-    categories.map((category) => `<option value="${category.name}">${category.name}</option>`).join("");
+    categories.map((category) => `<option value="${escapeHtml(category.name)}">${escapeHtml(category.name)}</option>`).join("");
   if (currentValue && categories.some((c) => c.name === currentValue)) {
     filterCategory.value = currentValue;
   }
@@ -2424,7 +2519,15 @@ function showNotification(message, type = "info") {
 function toggleLoading(element, isLoading, originalText = "Submit") {
   if (!element) return;
   element.disabled = isLoading;
-  element.innerHTML = isLoading ? '<span class="spinner"></span> Thinking...' : originalText;
+  if (isLoading) {
+    element.innerHTML = '<span class="spinner"></span> Thinking...';
+    return;
+  }
+  if (element.id === "authSubmit") {
+    setAuthSubmitLabel(originalText.trim());
+    return;
+  }
+  element.innerHTML = originalText;
 }
 
 function showSessionMessage(message, timeout = 10000) {
@@ -2440,7 +2543,13 @@ function hideSessionMessage() {
 async function readApiError(response) {
   try {
     const data = await response.json();
-    return data.detail;
+    if (typeof data.detail === "string") {
+      return data.detail;
+    }
+    if (Array.isArray(data.detail)) {
+      return data.detail.map((item) => item.msg).filter(Boolean).join("; ");
+    }
+    return "";
   } catch {
     return "";
   }

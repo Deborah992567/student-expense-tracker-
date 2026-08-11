@@ -95,6 +95,19 @@ def create_two_factor_token(user: models.User) -> str:
     return jwt.encode(payload, settings.secret_key, algorithm=JWT_ALGORITHM)
 
 
+def create_password_reset_token(user: models.User) -> str:
+    settings = get_settings()
+    now = datetime.now(UTC)
+    payload = {
+        "sub": str(user.id),
+        "email": user.email,
+        "scope": "password_reset",
+        "iat": now,
+        "exp": now + timedelta(minutes=30),
+    }
+    return jwt.encode(payload, settings.secret_key, algorithm=JWT_ALGORITHM)
+
+
 def decode_access_token(token: str) -> dict[str, object]:
     try:
         return jwt.decode(token, get_settings().secret_key, algorithms=[JWT_ALGORITHM])
@@ -108,6 +121,19 @@ def decode_two_factor_token(token: str) -> int:
     except InvalidTokenError:
         raise _auth_error() from None
     if payload.get("scope") != "two_factor" or not payload.get("sub"):
+        raise _auth_error()
+    try:
+        return int(payload["sub"])
+    except (TypeError, ValueError):
+        raise _auth_error() from None
+
+
+def decode_password_reset_token(token: str) -> int:
+    try:
+        payload = jwt.decode(token, get_settings().secret_key, algorithms=[JWT_ALGORITHM])
+    except InvalidTokenError:
+        raise _auth_error() from None
+    if payload.get("scope") != "password_reset" or not payload.get("sub"):
         raise _auth_error()
     try:
         return int(payload["sub"])

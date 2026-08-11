@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     smtp_use_tls: bool = True
     smtp_use_ssl: bool = False
     smtp_timeout: int = 10
+    frontend_url: str = "http://127.0.0.1:8003"
     exchange_rate_api_url: str = "https://open.er-api.com/v6/latest/"
     backup_enabled: bool = True
     backup_interval_hours: int = 24
