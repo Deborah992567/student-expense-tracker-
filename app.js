@@ -149,6 +149,9 @@ const adminVerifiedUsers = document.querySelector("#adminVerifiedUsers");
 const adminTotalExpenses = document.querySelector("#adminTotalExpenses");
 const adminTotalSpend = document.querySelector("#adminTotalSpend");
 const adminTopCategories = document.querySelector("#adminTopCategories");
+const menuToggle = document.querySelector("#menuToggle");
+const mobileNavOverlay = document.querySelector("#mobileNavOverlay");
+const sidebar = document.querySelector("#sidebar");
 
 // Filter and pagination elements
 const filterSearch = document.querySelector("#filterSearch");
@@ -189,7 +192,14 @@ function getApiBase() {
 
 async function init() {
   authForm.addEventListener("submit", handleAuthSubmit);
-  authModeToggle.addEventListener("click", toggleAuthMode);
+  if (authModeToggle) {
+    authModeToggle.addEventListener("click", (event) => {
+      event.preventDefault();
+      toggleAuthMode();
+    });
+  } else {
+    console.warn("Auth mode toggle button is missing from the DOM.");
+  }
   authBackButton.addEventListener("click", handleAuthBack);
   resendCodeButton.addEventListener("click", resendVerificationCode);
   const logoutButtonElement = document.querySelector("#logoutButton");
@@ -241,6 +251,15 @@ async function init() {
   document.querySelector("#goalName").addEventListener("input", handleGoalInputChange);
   document.querySelector("#goalTarget").addEventListener("input", handleGoalInputChange);
   budgetList.addEventListener("input", handleBudgetInput);
+  if (menuToggle && sidebar && mobileNavOverlay) {
+    menuToggle.addEventListener("click", () => toggleMobileMenu(true));
+    mobileNavOverlay.addEventListener("click", () => toggleMobileMenu(false));
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && sidebar.classList.contains("open")) {
+        toggleMobileMenu(false);
+      }
+    });
+  }
   budgetList.addEventListener("change", handleBudgetChange);
   budgetList.addEventListener("click", handleBudgetClick);
   countrySelect.addEventListener("change", handleCountryChange);
@@ -258,6 +277,18 @@ async function init() {
     recurringFrequency.addEventListener("change", updateRecurringFields);
   }
   updateRecurringFields();
+
+  function toggleMobileMenu(isOpen) {
+    const expanded = Boolean(isOpen);
+    menuToggle?.setAttribute("aria-expanded", String(expanded));
+    if (sidebar) {
+      sidebar.classList.toggle("open", expanded);
+    }
+    if (mobileNavOverlay) {
+      mobileNavOverlay.classList.toggle("active", expanded);
+    }
+  }
+
   if (recurringList) {
     recurringList.addEventListener("click", handleRecurringItemClick);
   }

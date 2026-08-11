@@ -1,4 +1,6 @@
-from datetime import date, datetime, UTC
+from __future__ import annotations
+
+from datetime import date as date_type, datetime, UTC
 from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -21,11 +23,11 @@ class ExpenseCreate(BaseModel):
     name: str = Field(min_length=1, max_length=160)
     amount: Decimal = Field(gt=0)
     category: str = Field(min_length=1, max_length=80)
-    date: date
+    date: date_type
 
     @field_validator("date")
     @classmethod
-    def date_not_in_far_future(cls, v: date) -> date:
+    def date_not_in_far_future(cls, v: date_type) -> date_type:
         if v > datetime.now(UTC).date():
             raise ValueError("Expense date cannot be in the future")
         return v
@@ -43,11 +45,11 @@ class ExpenseUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=160)
     amount: Decimal | None = Field(default=None, gt=0)
     category: str | None = Field(default=None, min_length=1, max_length=80)
-    date: date | None = None
+    date: date_type | None = None
 
     @field_validator("date")
     @classmethod
-    def date_not_in_far_future(cls, v: date | None) -> date | None:
+    def date_not_in_far_future(cls, v: date_type | None) -> date_type | None:
         if v is not None and v > datetime.now(UTC).date():
             raise ValueError("Expense date cannot be in the future")
         return v
@@ -84,7 +86,7 @@ class RecurringExpenseCreate(BaseModel):
 
 class RecurringExpenseRead(RecurringExpenseCreate):
     id: int
-    last_generated_at: date | None = None
+    last_generated_at: date_type | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -111,8 +113,8 @@ class RecurringExpenseUpdate(BaseModel):
 class ProfileUpdate(BaseModel):
     allowance: Decimal = Field(ge=0)
     preferred_range: str | None = Field(default=None, max_length=20)
-    custom_range_start: date | None = None
-    custom_range_end: date | None = None
+    custom_range_start: date_type | None = None
+    custom_range_end: date_type | None = None
 
 
 class ProfileRead(BaseModel):
@@ -127,8 +129,8 @@ class ProfileRead(BaseModel):
     role: str
     allowance: Decimal
     preferred_range: str
-    custom_range_start: date | None = None
-    custom_range_end: date | None = None
+    custom_range_start: date_type | None = None
+    custom_range_end: date_type | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -380,12 +382,12 @@ class QueueJobRead(BaseModel):
 
 
 class ArchiveRequest(BaseModel):
-    archived_before: date
+    archived_before: date_type
 
 
 class ArchiveRead(BaseModel):
     id: int
-    archived_before: date
+    archived_before: date_type
     archived_count: int
     status: str
     created_at: datetime

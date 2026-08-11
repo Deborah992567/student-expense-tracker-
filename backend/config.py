@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     backup_enabled: bool = True
     backup_interval_hours: int = 24
     backup_dir: str = "backend/backups"
+    backup_pg_dump_path: str = "pg_dump"
     maintenance_interval_seconds: int = 300
     archive_after_days: int = 365
 

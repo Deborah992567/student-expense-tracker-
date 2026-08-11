@@ -1941,7 +1941,20 @@ def create_database_backup(db: Session, initiated_by_user_id: int | None = None)
             shutil.copy2(source, destination)
             record.filename = str(destination)
         elif url.drivername.startswith("postgresql"):
-            command = ["pg_dump", str(url), "-Fc", "-f", str(destination)]
+            pg_dump_path = get_settings().backup_pg_dump_path
+            if Path(pg_dump_path).is_absolute():
+                resolved_pg_dump = Path(pg_dump_path)
+                if not resolved_pg_dump.exists():
+                    raise RuntimeError(f"pg_dump path not found: {pg_dump_path}")
+                resolved_pg_dump = str(resolved_pg_dump)
+            else:
+                resolved_pg_dump = shutil.which(pg_dump_path)
+                if not resolved_pg_dump:
+                    raise RuntimeError(
+                        "PostgreSQL backup requires pg_dump to be installed and available on PATH. "
+                        "Set BACKUP_PG_DUMP_PATH if pg_dump is not on PATH."
+                    )
+            command = [resolved_pg_dump, str(url), "-Fc", "-f", str(destination)]
             subprocess.run(command, check=True, capture_output=True, text=True, timeout=120)
         else:
             raise RuntimeError(f"Unsupported database driver for backup: {url.drivername}")
@@ -2141,7 +2154,17 @@ def maintenance_loop() -> None:
         try:
             with Session(engine) as db:
                 if should_create_automatic_backup(db):
-                    create_database_backup(db)
+                    url = engine.url
+                    if url.drivername.startswith("postgresql"):
+                        pg_dump_path = get_settings().backup_pg_dump_path
+                        if not shutil.which(pg_dump_path) and not Path(pg_dump_path).is_absolute():
+                            logger.warning(
+                                "Automatic PostgreSQL backup skipped: pg_dump is not installed or not available on PATH."
+                            )
+                        else:
+                            create_database_backup(db)
+                    else:
+                        create_database_backup(db)
                 send_scheduled_reports(db)
                 process_queue_jobs(db)
                 cutoff = datetime.now(UTC).date() - timedelta(days=get_settings().archive_after_days)

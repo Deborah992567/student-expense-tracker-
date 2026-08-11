@@ -208,7 +208,21 @@
     </section>
 
     <div class="app-shell hidden" id="appShell">
-      <aside class="sidebar" aria-label="Main navigation">
+      <div class="mobile-shell-header">
+        <button id="menuToggle" class="mobile-menu-button" type="button" aria-expanded="false" aria-controls="sidebar">
+          <span class="sr-only">Open navigation menu</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" aria-hidden="true">
+            <path d="M4 7h16"></path>
+            <path d="M4 12h16"></path>
+            <path d="M4 17h16"></path>
+          </svg>
+        </button>
+        <div class="mobile-shell-brand">
+          <strong>StudentSpend</strong>
+        </div>
+      </div>
+      <div id="mobileNavOverlay" class="mobile-nav-overlay hidden"></div>
+      <aside class="sidebar" aria-label="Main navigation" id="sidebar">
         <div class="brand">
           <div class="brand-mark" aria-hidden="true">S</div>
           <div>

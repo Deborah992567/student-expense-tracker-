@@ -1,12 +1,55 @@
 from collections.abc import Generator
 import logging
+from pathlib import Path
 
-from sqlalchemy import create_engine, event
+from fastapi import HTTPException
+from sqlalchemy import create_engine, event, text
+from sqlalchemy.engine import make_url
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from backend.config import get_settings
 
 logger = logging.getLogger(__name__)
+
+
+def ensure_database_exists(url: str) -> None:
+    parsed = make_url(url)
+    if not parsed.drivername.startswith("mysql"):
+        return
+
+    database_name = parsed.database
+    if not database_name:
+        return
+
+    server_url = parsed.set(database="")
+    logger.info("Ensuring MySQL database exists: %s", database_name)
+    try:
+        engine_for_create = create_engine(str(server_url), pool_pre_ping=True)
+        with engine_for_create.connect() as conn:
+            conn.execute(
+                text(
+                    f"CREATE DATABASE IF NOT EXISTS `{database_name}` "
+                    "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+                )
+            )
+            conn.commit()
+    except OperationalError as exc:
+        message = str(exc)
+        if "1045" in message or "Access denied" in message:
+            raise RuntimeError(
+                "MySQL authentication failed while initializing the database. "
+                "Check backend/.env DATABASE_URL credentials or switch to SQLite for development."
+            ) from exc
+        logger.warning(
+            "Unable to connect to MySQL server to create database %s: %s",
+            database_name,
+            exc,
+        )
+        raise
+    finally:
+        if 'engine_for_create' in locals():
+            engine_for_create.dispose()
 
 
 class Base(DeclarativeBase):
@@ -20,9 +63,14 @@ logger.info(
     db_url.split("@")[-1].split("/", 1)[-1] if "@" in db_url else db_url
 )
 
+ensure_database_exists(db_url)
+
+is_sqlite = db_url.startswith("sqlite")
+
 engine = create_engine(
-    get_settings().database_url,
-    pool_pre_ping=True
+    db_url,
+    pool_pre_ping=True,
+    connect_args={"check_same_thread": False} if is_sqlite else {},
 )
 
 SessionLocal = sessionmaker(
@@ -62,6 +110,9 @@ def get_db() -> Generator[Session, None, None]:
     try:
         logger.debug("Database session opened")
         yield db
+
+    except HTTPException:
+        raise
 
     except Exception as e:
         logger.error("Database session error: %s", str(e))

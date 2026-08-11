@@ -29,12 +29,14 @@ BCRYPT_ROUNDS = 12
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
-# Initialize Redis client (usually this would be in database.py or config.py)
+# Initialize Redis client (gracefully degrade if unavailable)
+redis_client = None
 try:
-    redis_client = redis.from_url(get_settings().redis_url, decode_responses=True)
-except Exception as e:
-    logger.error("Failed to connect to Redis: %s", e)
-    redis_client = None
+    _test_redis = redis.from_url(get_settings().redis_url, decode_responses=True, socket_connect_timeout=2)
+    _test_redis.ping()
+    redis_client = _test_redis
+except Exception:
+    logger.debug("Redis not available; running without cache/rate-limiting")
 
 def get_redis():
     if not redis_client:

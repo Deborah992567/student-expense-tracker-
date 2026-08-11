@@ -348,6 +348,37 @@ button {
   padding: 28px;
   background: #111827;
   color: #ffffff;
+  transition: transform 0.25s ease;
+}
+
+.mobile-shell-header {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 28px 0 28px;
+}
+
+.mobile-shell-brand {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.mobile-menu-button {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--ink);
+}
+
+.mobile-nav-overlay {
+  display: none;
 }
 
 .brand {
@@ -1284,12 +1315,81 @@ input[readonly] {
     flex-wrap: wrap;
   }
 
-  main,
-  .sidebar {
+  main {
     padding: 18px;
   }
 
-  .hero-band {
+  .mobile-shell-header {
+    display: flex;
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+    padding: 16px 18px;
+    backdrop-filter: blur(10px);
+  }
+
+  .sidebar {
+    position: fixed;
+    inset: 0 auto auto 0;
+    width: min(280px, 100%);
+    max-width: 100%;
+    transform: translateX(-100%);
+    visibility: hidden;
+    opacity: 0;
+    z-index: 40;
+    box-shadow: 16px 0 40px rgba(0, 0, 0, 0.35);
+    height: 100vh;
+    padding: 22px 18px;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+    visibility: visible;
+    opacity: 1;
+  }
+
+  .mobile-nav-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.42);
+    z-index: 35;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+  }
+
+  .mobile-nav-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .nav-list {
+    gap: 12px;
+  }
+
+  .nav-link {
+    justify-content: flex-start;
+  }
+
+  .brand {
+    gap: 10px;
+  }
+
+  .student-card {
+    margin-top: auto;
+  }
+
+  .metric-grid,
+  .form-row,
+  .goals-panel .form-row,
+  .nav-list {
+    grid-template-columns: 1fr;
+  }
+
+  .bar-row {
     min-height: 270px;
     flex-direction: column;
     align-items: stretch;
