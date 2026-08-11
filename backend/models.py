@@ -38,6 +38,9 @@ class User(Base):
     devices: Mapped[list["UserDevice"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     notifications: Mapped[list["Notification"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     scheduled_reports: Mapped[list["ScheduledReport"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    savings_challenges: Mapped[list["SavingsChallenge"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    split_groups: Mapped[list["SplitGroup"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    group_budgets: Mapped[list["GroupBudget"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
 
 class Category(Base):
@@ -69,6 +72,9 @@ class Expense(Base):
     deleted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     archived: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     archived_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    receipt_path: Mapped[str] = mapped_column(String(500), nullable=True)
+    tax_deductible: Mapped[bool] = mapped_column(Boolean, default=False)
+    tax_category: Mapped[str] = mapped_column(String(80), nullable=True)
 
     user: Mapped[User] = relationship(back_populates="expenses")
 
@@ -108,6 +114,7 @@ class UserSettings(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True, index=True)
     country: Mapped[str] = mapped_column(String(80), default="United States")
     savings_currencies: Mapped[list[dict[str, object]]] = mapped_column(JSON, default=list)
+    dark_mode: Mapped[bool] = mapped_column(Boolean, default=False)
 
     user: Mapped[User] = relationship(back_populates="settings")
 
@@ -251,4 +258,101 @@ class ArchiveRecord(Base):
     archived_before: Mapped[date] = mapped_column(Date, nullable=False)
     archived_count: Mapped[int] = mapped_column(default=0, nullable=False)
     status: Mapped[str] = mapped_column(String(20), default="completed", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class SavingsChallenge(Base):
+    __tablename__ = "savings_challenges"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    target_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    current_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=0)
+    start_date: Mapped[date] = mapped_column(Date, nullable=False)
+    end_date: Mapped[date] = mapped_column(Date, nullable=False)
+    streak_days: Mapped[int] = mapped_column(default=0, nullable=False)
+    completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    last_contribution_date: Mapped[date] = mapped_column(Date, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    user: Mapped[User] = relationship(back_populates="savings_challenges")
+
+
+class SplitGroup(Base):
+    __tablename__ = "split_groups"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    user: Mapped[User] = relationship(back_populates="split_groups")
+    members: Mapped[list["SplitMember"]] = relationship(back_populates="group", cascade="all, delete-orphan")
+    expenses: Mapped[list["SplitExpense"]] = relationship(back_populates="group", cascade="all, delete-orphan")
+
+
+class SplitMember(Base):
+    __tablename__ = "split_members"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    group_id: Mapped[int] = mapped_column(ForeignKey("split_groups.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    email: Mapped[str] = mapped_column(String(255), nullable=True)
+
+    group: Mapped[SplitGroup] = relationship(back_populates="members")
+
+
+class SplitExpense(Base):
+    __tablename__ = "split_expenses"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    group_id: Mapped[int] = mapped_column(ForeignKey("split_groups.id", ondelete="CASCADE"), index=True)
+    description: Mapped[str] = mapped_column(String(160))
+    amount: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    paid_by_member_id: Mapped[int] = mapped_column(ForeignKey("split_members.id", ondelete="CASCADE"))
+    split_type: Mapped[str] = mapped_column(String(20), default="equal")
+    splits: Mapped[dict] = mapped_column(JSON, default=dict)
+    date: Mapped[date] = mapped_column(Date)
+    settled: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    group: Mapped[SplitGroup] = relationship(back_populates="expenses")
+    paid_by: Mapped[SplitMember] = relationship()
+
+
+class GroupBudget(Base):
+    __tablename__ = "group_budgets"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    total_budget: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    spent: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=0)
+    members: Mapped[dict] = mapped_column(JSON, default=dict)
+    start_date: Mapped[date] = mapped_column(Date)
+    end_date: Mapped[date] = mapped_column(Date)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    user: Mapped[User] = relationship(back_populates="group_budgets")
+
+
+class TaxCategory(Base):
+    __tablename__ = "tax_categories"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
+    description: Mapped[str] = mapped_column(Text, default="")
+    deductible_percentage: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=100)
+
+
+class PushSubscription(Base):
+    __tablename__ = "push_subscriptions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    endpoint: Mapped[str] = mapped_column(Text, nullable=False)
+    p256dh: Mapped[str] = mapped_column(Text, nullable=False)
+    auth_key: Mapped[str] = mapped_column(Text, nullable=False)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

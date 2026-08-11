@@ -198,11 +198,15 @@ def startup() -> None:
     ensure_security_columns()
     ensure_two_factor_columns()
     ensure_expense_archive_columns()
+    ensure_expense_receipt_columns()
+    ensure_expense_tax_columns()
+    ensure_settings_dark_mode_column()
     ensure_refresh_token_device_columns()
     ensure_database_indexes()
     reset_legacy_starter_budgets()
     reset_legacy_starter_goals()
     seed_default_feature_flags()
+    seed_default_tax_categories()
     start_maintenance_threads()
     logger.info("StudentSpend API server started successfully")
 
@@ -2403,3 +2407,958 @@ def as_aware_utc(value: datetime) -> datetime:
     if value.tzinfo is None:
         return value.replace(tzinfo=UTC)
     return value.astimezone(UTC)
+
+
+def ensure_expense_receipt_columns() -> None:
+    inspector = inspect(engine)
+    if not inspector.has_table("expenses"):
+        return
+    existing_columns = {column["name"] for column in inspector.get_columns("expenses")}
+    with engine.begin() as connection:
+        if "receipt_path" not in existing_columns:
+            connection.execute(text("ALTER TABLE expenses ADD COLUMN receipt_path VARCHAR(500) NULL"))
+
+
+def ensure_expense_tax_columns() -> None:
+    inspector = inspect(engine)
+    if not inspector.has_table("expenses"):
+        return
+    existing_columns = {column["name"] for column in inspector.get_columns("expenses")}
+    with engine.begin() as connection:
+        if "tax_deductible" not in existing_columns:
+            connection.execute(text("ALTER TABLE expenses ADD COLUMN tax_deductible BOOLEAN NOT NULL DEFAULT FALSE"))
+        if "tax_category" not in existing_columns:
+            connection.execute(text("ALTER TABLE expenses ADD COLUMN tax_category VARCHAR(80) NULL"))
+
+
+def ensure_settings_dark_mode_column() -> None:
+    inspector = inspect(engine)
+    if not inspector.has_table("user_settings"):
+        return
+    existing_columns = {column["name"] for column in inspector.get_columns("user_settings")}
+    with engine.begin() as connection:
+        if "dark_mode" not in existing_columns:
+            connection.execute(text("ALTER TABLE user_settings ADD COLUMN dark_mode BOOLEAN NOT NULL DEFAULT FALSE"))
+
+
+def seed_default_tax_categories() -> None:
+    pass
+
+
+# ──────────────────────────────────────────────────────────────
+# Feature 1: CSV Import
+# ──────────────────────────────────────────────────────────────
+
+@app.post("/api/expenses/import", response_model=schemas.CSVImportResponse)
+def import_expenses_csv(
+    payload: schemas.CSVImportRequest,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> dict[str, object]:
+    require_verified_email(user)
+    imported = 0
+    skipped = 0
+    errors: list[str] = []
+    for i, row in enumerate(payload.rows):
+        try:
+            from datetime import date as date_type
+            exp_date = date_type.fromisoformat(row.date)
+            expense = models.Expense(
+                user_id=user.id,
+                name=row.name,
+                amount=Decimal(str(row.amount)),
+                category=row.category,
+                date=exp_date,
+            )
+            db.add(expense)
+            imported += 1
+        except Exception as e:
+            skipped += 1
+            errors.append(f"Row {i+1}: {str(e)}")
+    db.commit()
+    invalidate_state_cache(user.id)
+    return {"imported": imported, "skipped": skipped, "errors": errors}
+
+
+# ──────────────────────────────────────────────────────────────
+# Feature 2: Receipt Photo Storage
+# ──────────────────────────────────────────────────────────────
+
+import base64
+import os
+
+RECEIPTS_DIR = FRONTEND_DIR / "receipts"
+RECEIPTS_DIR.mkdir(exist_ok=True)
+
+
+@app.post("/api/expenses/{expense_id}/receipt")
+async def upload_receipt(
+    expense_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> dict[str, str]:
+    require_verified_email(user)
+    expense = db.scalar(
+        select(models.Expense).where(models.Expense.id == expense_id, models.Expense.user_id == user.id)
+    )
+    if expense is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Expense not found")
+    body = await request.json()
+    image_data = body.get("image")
+    if not image_data:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No image data provided")
+
+    if "," in image_data:
+        image_data = image_data.split(",", 1)[1]
+
+    filename = f"receipt_{user.id}_{expense_id}_{int(datetime.now(UTC).timestamp())}.jpg"
+    filepath = RECEIPTS_DIR / filename
+    filepath.write_bytes(base64.b64decode(image_data))
+
+    expense.receipt_path = filename
+    db.commit()
+    return {"expense_id": expense_id, "receipt_url": f"/receipts/{filename}"}
+
+
+@app.get("/api/expenses/{expense_id}/receipt")
+def get_receipt(
+    expense_id: int,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    require_verified_email(user)
+    expense = db.scalar(
+        select(models.Expense).where(models.Expense.id == expense_id, models.Expense.user_id == user.id)
+    )
+    if expense is None or not expense.receipt_path:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Receipt not found")
+    filepath = RECEIPTS_DIR / expense.receipt_path
+    if not filepath.exists():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Receipt file not found")
+    import mimetypes
+    mime = mimetypes.guess_type(str(filepath))[0] or "image/jpeg"
+    return FileResponse(filepath, media_type=mime)
+
+
+# ──────────────────────────────────────────────────────────────
+# Feature 4: Budget Forecasting
+# ──────────────────────────────────────────────────────────────
+
+@app.get("/api/analytics/forecast", response_model=schemas.BudgetForecastRead)
+def get_budget_forecast(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    require_verified_email(user)
+    today = datetime.now(UTC).date()
+    days_in_month = (today.replace(month=today.month % 12 + 1, day=1) - timedelta(days=1)).day if today.month < 12 else 31
+    days_elapsed = today.day
+
+    expenses = db.scalars(
+        select(models.Expense).where(
+            models.Expense.user_id == user.id,
+            models.Expense.deleted == False,
+            models.Expense.date >= today.replace(day=1),
+        )
+    ).all()
+
+    total_spent = sum(float(e.amount) for e in expenses)
+    daily_rate = Decimal(str(total_spent / max(days_elapsed, 1)))
+    projected_total = daily_rate * days_in_month
+
+    categories = db.scalars(
+        select(models.Category).where(models.Category.user_id == user.id)
+    ).all()
+    budget_map = {c.name: float(c.budget) for c in categories if c.budget > 0}
+
+    category_totals: dict[str, float] = {}
+    for e in expenses:
+        category_totals[e.category] = category_totals.get(e.category, 0) + float(e.amount)
+
+    category_forecasts = []
+    for cat_name, spent in category_totals.items():
+        cat_budget = budget_map.get(cat_name, 0)
+        cat_daily = spent / max(days_elapsed, 1)
+        cat_projected = cat_daily * days_in_month
+        category_forecasts.append({
+            "category": cat_name,
+            "spent": spent,
+            "projected": round(cat_projected, 2),
+            "budget": cat_budget,
+            "over_budget": cat_projected > cat_budget if cat_budget > 0 else False,
+        })
+
+    allowance = float(user.allowance or 0)
+    on_track = projected_total <= allowance
+
+    return {
+        "projected_total": projected_total.quantize(Decimal("0.01")),
+        "days_elapsed": days_elapsed,
+        "days_in_month": days_in_month,
+        "daily_rate": daily_rate.quantize(Decimal("0.01")),
+        "on_track": on_track,
+        "category_forecasts": category_forecasts,
+    }
+
+
+# ──────────────────────────────────────────────────────────────
+# Feature 5: Recurring Expense Auto-Detection
+# ──────────────────────────────────────────────────────────────
+
+@app.get("/api/analytics/recurring-suggestions", response_model=list[schemas.RecurringSuggestion])
+def get_recurring_suggestions(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    require_verified_email(user)
+    six_months_ago = datetime.now(UTC).date() - timedelta(days=180)
+    expenses = db.scalars(
+        select(models.Expense).where(
+            models.Expense.user_id == user.id,
+            models.Expense.deleted == False,
+            models.Expense.date >= six_months_ago,
+        ).order_by(models.Expense.date)
+    ).all()
+
+    from collections import defaultdict
+    name_dates: dict[str, list[date]] = defaultdict(list)
+    name_amounts: dict[str, list[float]] = defaultdict(list)
+    name_categories: dict[str, str] = {}
+
+    for e in expenses:
+        name_dates[e.name.lower().strip()].append(e.date)
+        name_amounts[e.name.lower().strip()].append(float(e.amount))
+        name_categories[e.name.lower().strip()] = e.category
+
+    existing = set(
+        r.name.lower() for r in db.scalars(
+            select(models.RecurringExpense).where(models.RecurringExpense.user_id == user.id)
+        ).all()
+    )
+
+    suggestions = []
+    for name, dates in name_dates.items():
+        if name in existing or len(dates) < 3:
+            continue
+
+        amounts = name_amounts[name]
+        avg_amount = sum(amounts) / len(amounts)
+        all_same = all(abs(a - avg_amount) / avg_amount < 0.15 for a in amounts if avg_amount > 0)
+
+        if not all_same:
+            continue
+
+        gaps = [(dates[i+1] - dates[i]).days for i in range(len(dates)-1)]
+        avg_gap = sum(gaps) / len(gaps) if gaps else 30
+
+        if 5 <= avg_gap <= 10:
+            freq = "weekly"
+        elif 25 <= avg_gap <= 35:
+            freq = "monthly"
+        elif 350 <= avg_gap <= 380:
+            freq = "yearly"
+        else:
+            continue
+
+        confidence = min(1.0, len(dates) / 6)
+        suggestions.append({
+            "name": name.title(),
+            "amount": round(avg_amount, 2),
+            "category": name_categories.get(name, "Other"),
+            "frequency": freq,
+            "confidence": round(confidence, 2),
+            "occurrences": len(dates),
+        })
+
+    return sorted(suggestions, key=lambda s: s["confidence"], reverse=True)[:10]
+
+
+# ──────────────────────────────────────────────────────────────
+# Feature 6: Spending Insights / AI Coach
+# ──────────────────────────────────────────────────────────────
+
+@app.get("/api/analytics/insights", response_model=list[schemas.SpendingInsight])
+def get_spending_insights(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    require_verified_email(user)
+    today = datetime.now(UTC).date()
+    this_week_start = today - timedelta(days=today.weekday())
+    last_week_start = this_week_start - timedelta(days=7)
+
+    this_week = db.scalars(
+        select(models.Expense).where(
+            models.Expense.user_id == user.id,
+            models.Expense.deleted == False,
+            models.Expense.date >= this_week_start,
+        )
+    ).all()
+
+    last_week = db.scalars(
+        select(models.Expense).where(
+            models.Expense.user_id == user.id,
+            models.Expense.deleted == False,
+            models.Expense.date >= last_week_start,
+            models.Expense.date < this_week_start,
+        )
+    ).all()
+
+    insights: list[dict] = []
+    this_total = sum(float(e.amount) for e in this_week)
+    last_total = sum(float(e.amount) for e in last_week)
+
+    if last_total > 0:
+        change_pct = ((this_total - last_total) / last_total) * 100
+        if change_pct > 20:
+            insights.append({
+                "type": "spending_increase",
+                "title": "Spending trending up",
+                "message": f"You've spent {change_pct:.0f}% more this week (${this_total:.2f}) vs last week (${last_total:.2f}).",
+                "severity": "warning",
+            })
+        elif change_pct < -20:
+            insights.append({
+                "type": "spending_decrease",
+                "title": "Great spending discipline",
+                "message": f"You've spent {abs(change_pct):.0f}% less this week. Keep it up!",
+                "severity": "success",
+            })
+
+    allowance = float(user.allowance or 0)
+    if allowance > 0:
+        monthly_spent = sum(
+            float(e.amount) for e in db.scalars(
+                select(models.Expense).where(
+                    models.Expense.user_id == user.id,
+                    models.Expense.deleted == False,
+                    models.Expense.date >= today.replace(day=1),
+                )
+            ).all()
+        )
+        remaining_days = (today.replace(month=today.month % 12 + 1, day=1) - timedelta(days=1)).day - today.day
+        daily_budget_left = (allowance - monthly_spent) / max(remaining_days, 1)
+        if daily_budget_left < 0:
+            insights.append({
+                "type": "over_budget",
+                "title": "Over budget alert",
+                "message": f"You've exceeded your allowance by ${abs(monthly_spent - allowance):.2f}. Consider cutting back.",
+                "severity": "error",
+            })
+        elif daily_budget_left < allowance / 30 * 0.5:
+            insights.append({
+                "type": "tight_budget",
+                "title": "Budget running low",
+                "message": f"You have ${allowance - monthly_spent:.2f} left for {remaining_days} days (${daily_budget_left:.2f}/day).",
+                "severity": "warning",
+            })
+
+    from collections import Counter
+    cat_counts = Counter(e.category for e in this_week)
+    if cat_counts:
+        top_cat, top_count = cat_counts.most_common(1)[0]
+        if top_count >= 3:
+            insights.append({
+                "type": "category_pattern",
+                "title": f"Heavy {top_cat} spending",
+                "message": f"You've made {top_count} {top_cat} purchases this week. Consider setting a budget for this category.",
+                "severity": "info",
+            })
+
+    all_this_month = db.scalars(
+        select(models.Expense).where(
+            models.Expense.user_id == user.id,
+            models.Expense.deleted == False,
+            models.Expense.date >= today.replace(day=1),
+        )
+    ).all()
+
+    if all_this_month:
+        avg_expense = sum(float(e.amount) for e in all_this_month) / len(all_this_month)
+        big_expenses = [e for e in all_this_month if float(e.amount) > avg_expense * 3]
+        if big_expenses:
+            insights.append({
+                "type": "large_expense",
+                "title": "Unusual large expenses",
+                "message": f"You have {len(big_expenses)} expenses significantly above your average (${avg_expense:.2f}).",
+                "severity": "info",
+            })
+
+    if not insights:
+        insights.append({
+            "type": "on_track",
+            "title": "Looking good",
+            "message": "Your spending is consistent and on track. Keep monitoring!",
+            "severity": "success",
+        })
+
+    return insights
+
+
+# ──────────────────────────────────────────────────────────────
+# Feature 7: Savings Challenges
+# ──────────────────────────────────────────────────────────────
+
+@app.post("/api/savings-challenges", response_model=schemas.SavingsChallenge, status_code=status.HTTP_201_CREATED)
+def create_savings_challenge(
+    payload: schemas.SavingsChallengeCreate,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> models.SavingsChallenge:
+    require_verified_email(user)
+    challenge = models.SavingsChallenge(
+        user_id=user.id,
+        name=payload.name,
+        target_amount=payload.target_amount,
+        current_amount=0,
+        start_date=payload.start_date,
+        end_date=payload.end_date,
+        created_at=datetime.now(UTC),
+    )
+    db.add(challenge)
+    db.commit()
+    db.refresh(challenge)
+    return challenge
+
+
+@app.get("/api/savings-challenges", response_model=list[schemas.SavingsChallenge])
+def list_savings_challenges(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> list[models.SavingsChallenge]:
+    require_verified_email(user)
+    return db.scalars(
+        select(models.SavingsChallenge).where(
+            models.SavingsChallenge.user_id == user.id
+        ).order_by(models.SavingsChallenge.created_at.desc())
+    ).all()
+
+
+@app.patch("/api/savings-challenges/{challenge_id}", response_model=schemas.SavingsChallenge)
+def update_savings_challenge(
+    challenge_id: int,
+    payload: schemas.SavingsChallengeUpdate,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> models.SavingsChallenge:
+    require_verified_email(user)
+    challenge = db.scalar(
+        select(models.SavingsChallenge).where(
+            models.SavingsChallenge.id == challenge_id,
+            models.SavingsChallenge.user_id == user.id,
+        )
+    )
+    if challenge is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Challenge not found")
+
+    today = datetime.now(UTC).date()
+    old_amount = float(challenge.current_amount)
+    challenge.current_amount = payload.current_amount
+
+    if payload.current_amount > old_amount and challenge.last_contribution_date:
+        gap = (today - challenge.last_contribution_date).days
+        if gap <= 2:
+            challenge.streak_days += gap
+        else:
+            challenge.streak_days = 1
+    else:
+        challenge.streak_days = max(challenge.streak_days, 1)
+
+    challenge.last_contribution_date = today
+
+    if float(payload.current_amount) >= float(challenge.target_amount):
+        challenge.completed = True
+
+    db.commit()
+    db.refresh(challenge)
+    return challenge
+
+
+# ──────────────────────────────────────────────────────────────
+# Feature 3: Split Expenses
+# ──────────────────────────────────────────────────────────────
+
+@app.post("/api/split-groups", response_model=schemas.SplitGroup, status_code=status.HTTP_201_CREATED)
+def create_split_group(
+    payload: schemas.SplitGroupCreate,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> models.SplitGroup:
+    require_verified_email(user)
+    group = models.SplitGroup(
+        user_id=user.id,
+        name=payload.name,
+        created_at=datetime.now(UTC),
+    )
+    db.add(group)
+    db.flush()
+    member = models.SplitMember(group_id=group.id, name=user.first_name or user.name, email=user.email)
+    db.add(member)
+    db.commit()
+    db.refresh(group)
+    return group
+
+
+@app.get("/api/split-groups", response_model=list[schemas.SplitGroupRead])
+def list_split_groups(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> list[dict]:
+    require_verified_email(user)
+    groups = db.scalars(
+        select(models.SplitGroup).where(models.SplitGroup.user_id == user.id)
+    ).all()
+    result = []
+    for g in groups:
+        members = [{"id": m.id, "name": m.name, "email": m.email} for m in g.members]
+        expenses = db.scalars(
+            select(models.SplitExpense).where(models.SplitExpense.group_id == g.id)
+        ).all()
+        total = sum(float(e.amount) for e in expenses)
+        unsettled = sum(float(e.amount) for e in expenses if not e.settled)
+        result.append({
+            "id": g.id,
+            "name": g.name,
+            "created_at": g.created_at,
+            "members": members,
+            "total_expenses": Decimal(str(total)),
+            "unsettled_amount": Decimal(str(unsettled)),
+        })
+    return result
+
+
+@app.post("/api/split-groups/{group_id}/members")
+async def add_split_member(
+    group_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    require_verified_email(user)
+    group = db.scalar(
+        select(models.SplitGroup).where(
+            models.SplitGroup.id == group_id,
+            models.SplitGroup.user_id == user.id,
+        )
+    )
+    if group is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Split group not found")
+    data = await request.json()
+    name = data.get("name", "")
+    email = data.get("email", "")
+    if not name:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Name is required")
+    member = models.SplitMember(group_id=group_id, name=name, email=email)
+    db.add(member)
+    db.commit()
+    return {"id": member.id, "name": member.name, "email": member.email}
+
+
+@app.post("/api/split-expenses", response_model=schemas.SplitExpense, status_code=status.HTTP_201_CREATED)
+def create_split_expense(
+    payload: schemas.SplitExpenseCreate,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> models.SplitExpense:
+    require_verified_email(user)
+    group = db.scalar(
+        select(models.SplitGroup).where(
+            models.SplitGroup.id == payload.split_group_id,
+            models.SplitGroup.user_id == user.id,
+        )
+    )
+    if group is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Split group not found")
+    expense = models.SplitExpense(
+        group_id=payload.split_group_id,
+        description=payload.description,
+        amount=payload.amount,
+        paid_by_member_id=payload.paid_by,
+        split_type=payload.split_type,
+        splits=payload.splits,
+        date=payload.date,
+        created_at=datetime.now(UTC),
+    )
+    db.add(expense)
+    db.commit()
+    db.refresh(expense)
+    return expense
+
+
+@app.get("/api/split-groups/{group_id}/expenses")
+def list_split_expenses(
+    group_id: int,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    require_verified_email(user)
+    group = db.scalar(
+        select(models.SplitGroup).where(
+            models.SplitGroup.id == group_id,
+            models.SplitGroup.user_id == user.id,
+        )
+    )
+    if group is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Split group not found")
+    expenses = db.scalars(
+        select(models.SplitExpense).where(models.SplitExpense.group_id == group_id)
+        .order_by(models.SplitExpense.date.desc())
+    ).all()
+    return [
+        {
+            "id": e.id, "description": e.description, "amount": float(e.amount),
+            "paid_by_member_id": e.paid_by_member_id, "split_type": e.split_type,
+            "splits": e.splits, "date": e.date.isoformat(), "settled": e.settled,
+        }
+        for e in expenses
+    ]
+
+
+# ──────────────────────────────────────────────────────────────
+# Feature 8: Multi-Currency Conversion on Entry
+# ──────────────────────────────────────────────────────────────
+
+@app.get("/api/currencies/convert")
+def convert_currency(
+    amount: float = 1,
+    from_currency: str = "USD",
+    to_currency: str = "USD",
+    redis = Depends(get_redis),
+):
+    if from_currency == to_currency:
+        return {"amount": amount, "from": from_currency, "to": to_currency, "converted": amount, "rate": 1}
+    rates = get_exchange_rates(redis)
+    if not rates:
+        raise HTTPException(status_code=503, detail="Exchange rate service unavailable")
+    from_rate = Decimal(str(rates.get(from_currency, 1)))
+    to_rate = Decimal(str(rates.get(to_currency, 1)))
+    converted = Decimal(str(amount)) / from_rate * to_rate
+    rate = to_rate / from_rate
+    return {
+        "amount": amount,
+        "from": from_currency,
+        "to": to_currency,
+        "converted": float(converted.quantize(Decimal("0.01"))),
+        "rate": float(rate.quantize(Decimal("0.0001"))),
+    }
+
+
+# ──────────────────────────────────────────────────────────────
+# Feature 9: Group Budgets
+# ──────────────────────────────────────────────────────────────
+
+@app.post("/api/group-budgets", response_model=schemas.GroupBudget, status_code=status.HTTP_201_CREATED)
+def create_group_budget(
+    payload: schemas.GroupBudgetCreate,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> models.GroupBudget:
+    require_verified_email(user)
+    budget = models.GroupBudget(
+        user_id=user.id,
+        name=payload.name,
+        total_budget=payload.total_budget,
+        spent=0,
+        members={"member_ids": payload.member_ids},
+        start_date=payload.start_date,
+        end_date=payload.end_date,
+        created_at=datetime.now(UTC),
+    )
+    db.add(budget)
+    db.commit()
+    db.refresh(budget)
+    return budget
+
+
+@app.get("/api/group-budgets", response_model=list[schemas.GroupBudget])
+def list_group_budgets(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> list[models.GroupBudget]:
+    require_verified_email(user)
+    return db.scalars(
+        select(models.GroupBudget).where(models.GroupBudget.user_id == user.id)
+        .order_by(models.GroupBudget.created_at.desc())
+    ).all()
+
+
+@app.patch("/api/group-budgets/{budget_id}")
+async def update_group_budget(
+    budget_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    require_verified_email(user)
+    budget = db.scalar(
+        select(models.GroupBudget).where(
+            models.GroupBudget.id == budget_id,
+            models.GroupBudget.user_id == user.id,
+        )
+    )
+    if budget is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group budget not found")
+    data = await request.json()
+    if "spent" in data:
+        budget.spent = Decimal(str(data["spent"]))
+    db.commit()
+    db.refresh(budget)
+    return budget
+
+
+# ──────────────────────────────────────────────────────────────
+# Feature 10: Tax Deduction Tracker
+# ──────────────────────────────────────────────────────────────
+
+@app.get("/api/tax/categories", response_model=list[schemas.TaxCategory])
+def list_tax_categories():
+    cats = [
+        {"id": 1, "name": "Tuition & Fees", "description": "Qualified tuition and fees", "deductible_percentage": 100},
+        {"id": 2, "name": "Textbooks & Supplies", "description": "Required books and course materials", "deductible_percentage": 100},
+        {"id": 3, "name": "Student Loan Interest", "description": "Interest on qualified student loans", "deductible_percentage": 100},
+        {"id": 4, "name": "Transportation", "description": "Transportation to and from institution", "deductible_percentage": 50},
+        {"id": 5, "name": "Equipment & Technology", "description": "Computer and equipment for education", "deductible_percentage": 100},
+        {"id": 6, "name": "Other Education", "description": "Other qualified education expenses", "deductible_percentage": 50},
+    ]
+    return cats
+
+
+@app.get("/api/tax/summary")
+def get_tax_summary(
+    start_date: date_type | None = None,
+    end_date: date_type | None = None,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    require_verified_email(user)
+    query = select(models.Expense).where(
+        models.Expense.user_id == user.id,
+        models.Expense.deleted == False,
+        models.Expense.tax_deductible == True,
+    )
+    if start_date:
+        query = query.where(models.Expense.date >= start_date)
+    if end_date:
+        query = query.where(models.Expense.date <= end_date)
+
+    expenses = db.scalars(query.order_by(models.Expense.date)).all()
+
+    category_totals: dict[str, float] = {}
+    for e in expenses:
+        cat = e.tax_category or "Uncategorized"
+        category_totals[cat] = category_totals.get(cat, 0) + float(e.amount)
+
+    total = sum(category_totals.values())
+    return {
+        "total_deductible": round(total, 2),
+        "by_category": [{"category": k, "amount": round(v, 2)} for k, v in sorted(category_totals.items())],
+        "expense_count": len(expenses),
+    }
+
+
+@app.patch("/api/expenses/{expense_id}/tax")
+async def update_expense_tax_info(
+    expense_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    require_verified_email(user)
+    expense = db.scalar(
+        select(models.Expense).where(models.Expense.id == expense_id, models.Expense.user_id == user.id)
+    )
+    if expense is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Expense not found")
+    data = await request.json()
+    if "tax_deductible" in data:
+        expense.tax_deductible = data["tax_deductible"]
+    if "tax_category" in data:
+        expense.tax_category = data["tax_category"]
+    db.commit()
+    invalidate_state_cache(user.id)
+    return {"message": "Tax info updated"}
+
+
+# ──────────────────────────────────────────────────────────────
+# Feature 11: Dark Mode Preference
+# ──────────────────────────────────────────────────────────────
+
+@app.patch("/api/settings/dark-mode")
+async def update_dark_mode(
+    request: Request,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    require_verified_email(user)
+    data = await request.json()
+    settings = db.scalars(select(models.UserSettings).where(models.UserSettings.user_id == user.id)).first()
+    if settings:
+        settings.dark_mode = data.get("dark_mode", False)
+        db.commit()
+    return {"dark_mode": settings.dark_mode if settings else False}
+
+
+# ──────────────────────────────────────────────────────────────
+# Feature 12: Push Notifications
+# ──────────────────────────────────────────────────────────────
+
+@app.post("/api/push/subscribe")
+async def subscribe_push(
+    request: Request,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    require_verified_email(user)
+    data = await request.json()
+    existing = db.scalar(
+        select(models.PushSubscription).where(
+            models.PushSubscription.user_id == user.id,
+            models.PushSubscription.endpoint == data.get("endpoint", ""),
+        )
+    )
+    if existing:
+        existing.p256dh = data.get("keys", {}).get("p256dh", "")
+        existing.auth_key = data.get("keys", {}).get("auth", "")
+        existing.active = True
+    else:
+        sub = models.PushSubscription(
+            user_id=user.id,
+            endpoint=data.get("endpoint", ""),
+            p256dh=data.get("keys", {}).get("p256dh", ""),
+            auth_key=data.get("keys", {}).get("auth", ""),
+            active=True,
+            created_at=datetime.now(UTC),
+        )
+        db.add(sub)
+    db.commit()
+    return {"message": "Push subscription saved"}
+
+
+@app.post("/api/push/unsubscribe")
+async def unsubscribe_push(
+    request: Request,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    require_verified_email(user)
+    data = await request.json()
+    sub = db.scalar(
+        select(models.PushSubscription).where(
+            models.PushSubscription.user_id == user.id,
+            models.PushSubscription.endpoint == data.get("endpoint", ""),
+        )
+    )
+    if sub:
+        sub.active = False
+        db.commit()
+    return {"message": "Push subscription removed"}
+
+
+# ──────────────────────────────────────────────────────────────
+# Feature 13: Enhanced Financial Health Score
+# ──────────────────────────────────────────────────────────────
+
+@app.get("/api/analytics/health-score")
+def get_health_score(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    require_verified_email(user)
+    today = datetime.now(UTC).date()
+    month_start = today.replace(day=1)
+
+    expenses = db.scalars(
+        select(models.Expense).where(
+            models.Expense.user_id == user.id,
+            models.Expense.deleted == False,
+            models.Expense.date >= month_start,
+        )
+    ).all()
+
+    allowance = float(user.allowance or 0)
+    total_spent = sum(float(e.amount) for e in expenses)
+
+    budget_score = max(0, min(30, 30 * (1 - total_spent / allowance))) if allowance > 0 else 15
+
+    categories_used = len(set(e.category for e in expenses))
+    diversity_score = min(20, categories_used * 4)
+
+    recurring = db.scalars(
+        select(models.RecurringExpense).where(models.RecurringExpense.user_id == user.id)
+    ).all()
+    planning_score = min(20, len(recurring) * 7)
+
+    days_elapsed = (today - month_start).days + 1
+    daily_rate = total_spent / max(days_elapsed, 1)
+    days_in_month = (today.replace(month=today.month % 12 + 1, day=1) - timedelta(days=1)).day if today.month < 12 else 31
+    projected = daily_rate * days_in_month
+    consistency_score = max(0, min(15, 15 * (1 - max(0, projected - allowance) / allowance))) if allowance > 0 else 7
+
+    savings_goal = db.scalars(
+        select(models.Goal).where(models.Goal.user_id == user.id)
+    ).first()
+    savings_score = 0
+    if savings_goal and float(savings_goal.target) > 0:
+        savings_pct = float(savings_goal.saved) / float(savings_goal.target)
+        savings_score = min(15, savings_pct * 15)
+
+    total_score = round(budget_score + diversity_score + planning_score + consistency_score + savings_score)
+
+    if total_score >= 80:
+        grade = "Excellent"
+        message = "Your financial habits are strong. Keep it up!"
+    elif total_score >= 60:
+        grade = "Good"
+        message = "Solid foundation. Consider adding more recurring expenses or increasing savings."
+    elif total_score >= 40:
+        grade = "Fair"
+        message = "Room for improvement. Try setting category budgets and tracking more consistently."
+    else:
+        grade = "Needs Attention"
+        message = "Start by setting a monthly allowance and creating a savings goal."
+
+    return {
+        "score": total_score,
+        "grade": grade,
+        "message": message,
+        "breakdown": {
+            "budget_discipline": round(budget_score),
+            "category_diversity": round(diversity_score),
+            "planning": round(planning_score),
+            "consistency": round(consistency_score),
+            "savings_progress": round(savings_score),
+        },
+    }
+
+
+# ──────────────────────────────────────────────────────────────
+# Feature 15: Student Discount Finder
+# ──────────────────────────────────────────────────────────────
+
+DISCOUNT_DATABASE = [
+    {"provider": "Amazon", "category": "Shopping", "discount": "50% off Prime Student", "url": "https://www.amazon.com/primestudent", "requires_verification": True},
+    {"provider": "Apple", "category": "Technology", "discount": "Education pricing on Mac & iPad", "url": "https://www.apple.com/shop/go/education", "requires_verification": True},
+    {"provider": "Spotify", "category": "Entertainment", "discount": "50% off Premium for students", "url": "https://www.spotify.com/student", "requires_verification": True},
+    {"provider": "Adobe", "category": "Software", "discount": "60% off Creative Cloud", "url": "https://www.adobe.com/creativecloud/plans.html", "requires_verification": True},
+    {"provider": "Microsoft", "category": "Software", "discount": "Free Office 365 Education", "url": "https://www.microsoft.com/en-us/education/products/office", "requires_verification": True},
+    {"provider": "GitHub", "category": "Technology", "discount": "Free GitHub Pro", "url": "https://education.github.com", "requires_verification": True},
+    {"provider": "Notion", "category": "Productivity", "discount": "Free Plus plan for students", "url": "https://www.notion.so/product/notion-for-education", "requires_verification": True},
+    {"provider": "Canva", "category": "Design", "discount": "Free Canva Pro for students", "url": "https://www.canva.com/canva-for-education/", "requires_verification": True},
+    {"provider": "Autodesk", "category": "Design", "discount": "Free education license", "url": "https://www.autodesk.com/education/edu-software/overview", "requires_verification": True},
+    {"provider": "JetBrains", "category": "Technology", "discount": "Free all-products pack", "url": "https://www.jetbrains.com/student/", "requires_verification": True},
+    {"provider": "Overleaf", "category": "Productivity", "discount": "Free Overleaf subscription", "url": "https://www.overleaf.com/user/subscription/edu", "requires_verification": True},
+    {"provider": "Coursera", "category": "Education", "discount": "Financial aid available", "url": "https://www.coursera.org/financial-aid", "requires_verification": False},
+]
+
+
+@app.get("/api/discounts")
+def list_student_discounts(category: str = ""):
+    if category:
+        return [d for d in DISCOUNT_DATABASE if d["category"].lower() == category.lower()]
+    return DISCOUNT_DATABASE
+
+
+@app.get("/api/discounts/categories")
+def list_discount_categories():
+    return list(set(d["category"] for d in DISCOUNT_DATABASE))

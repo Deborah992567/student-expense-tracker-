@@ -37,6 +37,9 @@ class ExpenseRead(ExpenseCreate):
     id: int
     deleted: bool | None = False
     deleted_at: str | None = None
+    receipt_path: str | None = None
+    tax_deductible: bool = False
+    tax_category: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -145,6 +148,7 @@ class AccountSecurityRead(BaseModel):
 class UserSettingsRead(BaseModel):
     country: str
     savings_currencies: list[dict]
+    dark_mode: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -412,3 +416,165 @@ class AdminDashboardRead(BaseModel):
 class TotalBalanceRead(BaseModel):
     home_currency: str
     total_converted_balance: Decimal
+
+
+class CSVImportRow(BaseModel):
+    name: str
+    amount: Decimal
+    category: str
+    date: str
+
+
+class CSVImportRequest(BaseModel):
+    rows: list[CSVImportRow]
+
+
+class CSVImportResponse(BaseModel):
+    imported: int
+    skipped: int
+    errors: list[str]
+
+
+class ReceiptUploadResponse(BaseModel):
+    expense_id: int
+    receipt_url: str
+
+
+class BudgetForecastRead(BaseModel):
+    projected_total: Decimal
+    days_elapsed: int
+    days_in_month: int
+    daily_rate: Decimal
+    on_track: bool
+    category_forecasts: list[dict]
+
+
+class RecurringSuggestion(BaseModel):
+    name: str
+    amount: Decimal
+    category: str
+    frequency: str
+    confidence: float
+    occurrences: int
+
+
+class SpendingInsight(BaseModel):
+    type: str
+    title: str
+    message: str
+    severity: str
+
+
+class SavingsChallenge(BaseModel):
+    id: int
+    name: str
+    target_amount: Decimal
+    current_amount: Decimal
+    start_date: date_type
+    end_date: date_type
+    streak_days: int
+    completed: bool
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SavingsChallengeCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    target_amount: Decimal = Field(gt=0)
+    start_date: date_type
+    end_date: date_type
+
+
+class SavingsChallengeUpdate(BaseModel):
+    current_amount: Decimal = Field(ge=0)
+
+
+class SplitGroup(BaseModel):
+    id: int
+    name: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SplitGroupCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+
+
+class SplitGroupRead(BaseModel):
+    id: int
+    name: str
+    members: list[dict]
+    total_expenses: Decimal
+    unsettled_amount: Decimal
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SplitExpense(BaseModel):
+    id: int
+    description: str
+    amount: Decimal
+    paid_by: int
+    split_group_id: int
+    split_type: str
+    date: date_type
+    settled: bool
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SplitExpenseCreate(BaseModel):
+    description: str = Field(min_length=1, max_length=160)
+    amount: Decimal = Field(gt=0)
+    paid_by: int
+    split_group_id: int
+    split_type: str = Field(default="equal", pattern=r"^(equal|percentage|exact)$")
+    splits: list[dict] = Field(default_factory=list)
+    date: date_type
+
+
+class GroupBudget(BaseModel):
+    id: int
+    name: str
+    total_budget: Decimal
+    spent: Decimal
+    members: list[dict]
+    start_date: date_type
+    end_date: date_type
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class GroupBudgetCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    total_budget: Decimal = Field(gt=0)
+    member_ids: list[int] = Field(default_factory=list)
+    start_date: date_type
+    end_date: date_type
+
+
+class TaxCategory(BaseModel):
+    id: int
+    name: str
+    description: str
+    deductible_percentage: Decimal
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PushSubscription(BaseModel):
+    id: int
+    endpoint: str
+    p256dh: str
+    auth: str
+    user_id: int
+    active: bool
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PushSubscriptionCreate(BaseModel):
+    endpoint: str
+    p256dh: str
+    auth: str
