@@ -12,6 +12,7 @@ import urllib.request
 import shutil
 import subprocess
 import threading
+import secrets
 
 if __package__ in {None, ""}:
     sys.path.append(str(Path(__file__).resolve().parent.parent))
@@ -3134,6 +3135,107 @@ async def update_group_budget(
     db.commit()
     db.refresh(budget)
     return budget
+
+
+# ──────────────────────────────────────────────────────────────
+# Feature: Budget Sharing (Multi-user)
+# ──────────────────────────────────────────────────────────────
+
+@app.post("/api/budget-shares", response_model=schemas.BudgetShareRead, status_code=status.HTTP_201_CREATED)
+def create_budget_share(
+    payload: schemas.BudgetShareCreate,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> models.BudgetShare:
+    require_verified_email(user)
+    share_token = secrets.token_urlsafe(32)
+    categories = db.scalars(
+        select(models.Category).where(models.Category.user_id == user.id)
+    ).all()
+    budget_data = {
+        "allowance": float(user.allowance or 0),
+        "categories": [{"name": c.name, "budget": float(c.budget), "color": c.color} for c in categories],
+    }
+    share = models.BudgetShare(
+        owner_user_id=user.id,
+        shared_with_email=payload.shared_with_email.lower().strip(),
+        share_token=share_token,
+        budget_data=budget_data,
+        created_at=datetime.now(UTC),
+    )
+    db.add(share)
+    db.commit()
+    db.refresh(share)
+    return share
+
+
+@app.get("/api/budget-shares", response_model=list[schemas.BudgetShareRead])
+def list_budget_shares(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> list[models.BudgetShare]:
+    require_verified_email(user)
+    return db.scalars(
+        select(models.BudgetShare).where(
+            models.BudgetShare.owner_user_id == user.id,
+            models.BudgetShare.active == True,
+        ).order_by(models.BudgetShare.created_at.desc())
+    ).all()
+
+
+@app.get("/api/budget-shares/received", response_model=list[schemas.BudgetShareRead])
+def list_received_budget_shares(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> list[models.BudgetShare]:
+    require_verified_email(user)
+    return db.scalars(
+        select(models.BudgetShare).where(
+            models.BudgetShare.shared_with_email == user.email.lower(),
+            models.BudgetShare.active == True,
+        ).order_by(models.BudgetShare.created_at.desc())
+    ).all()
+
+
+@app.post("/api/budget-shares/{share_id}/accept", response_model=schemas.MessageRead)
+def accept_budget_share(
+    share_id: int,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> dict[str, str]:
+    require_verified_email(user)
+    share = db.scalar(
+        select(models.BudgetShare).where(
+            models.BudgetShare.id == share_id,
+            models.BudgetShare.shared_with_email == user.email.lower(),
+            models.BudgetShare.active == True,
+        )
+    )
+    if share is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Share not found")
+    share.accepted_at = datetime.now(UTC)
+    db.commit()
+    return {"message": "Budget share accepted"}
+
+
+@app.delete("/api/budget-shares/{share_id}", response_model=schemas.MessageRead)
+def revoke_budget_share(
+    share_id: int,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> dict[str, str]:
+    require_verified_email(user)
+    share = db.scalar(
+        select(models.BudgetShare).where(
+            models.BudgetShare.id == share_id,
+            models.BudgetShare.owner_user_id == user.id,
+        )
+    )
+    if share is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Share not found")
+    share.active = False
+    db.commit()
+    return {"message": "Budget share revoked"}
 
 
 # ──────────────────────────────────────────────────────────────

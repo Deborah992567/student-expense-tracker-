@@ -578,3 +578,20 @@ class PushSubscriptionCreate(BaseModel):
     endpoint: str
     p256dh: str
     auth: str
+
+
+class BudgetShareCreate(BaseModel):
+    shared_with_email: str = Field(min_length=1, max_length=255)
+
+
+class BudgetShareRead(BaseModel):
+    id: int
+    owner_user_id: int
+    shared_with_email: str
+    share_token: str
+    budget_data: dict
+    created_at: datetime
+    accepted_at: datetime | None = None
+    active: bool
+
+    model_config = ConfigDict(from_attributes=True)
