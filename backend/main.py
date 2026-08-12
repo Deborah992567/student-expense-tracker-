@@ -993,19 +993,39 @@ def restore_expense(
 def list_recycle_bin(
     page: int = 1,
     per_page: int = 50,
+    search: str = "",
+    category: str = "",
+    start_date: date_type | None = None,
+    end_date: date_type | None = None,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ) -> dict[str, object]:
     require_verified_email(user)
-    query = select(models.Expense).where(models.Expense.user_id == user.id, models.Expense.deleted == True).order_by(models.Expense.deleted_at.desc())
+    page = max(1, page)
+    per_page = min(max(1, per_page), 100)
+
+    filters = [models.Expense.user_id == user.id, models.Expense.deleted == True]
+
+    if search:
+        search_pattern = f"%{search.lower()}%"
+        filters.append(models.Expense.name.ilike(search_pattern))
+    if category:
+        filters.append(models.Expense.category == category)
+    if start_date:
+        filters.append(models.Expense.date >= start_date)
+    if end_date:
+        filters.append(models.Expense.date <= end_date)
+
+    query = select(models.Expense).where(*filters).order_by(models.Expense.deleted_at.desc())
     total = db.scalar(select(func.count()).select_from(query.subquery()))
     expenses = db.scalars(query.limit(per_page).offset((page - 1) * per_page)).all()
+    total_pages = (int(total or 0) + per_page - 1) // per_page if total else 1
     pagination = schemas.PaginationInfo(
         page=page,
         per_page=per_page,
         total=int(total or 0),
-        total_pages=(int(total or 0) + per_page - 1) // per_page,
-        has_next=((page * per_page) < (int(total or 0))),
+        total_pages=total_pages,
+        has_next=(page < total_pages),
         has_prev=(page > 1),
     )
     return {"expenses": expenses, "pagination": pagination}
