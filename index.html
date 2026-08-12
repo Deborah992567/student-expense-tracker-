@@ -4,7 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Smart Student Expense Tracker</title>
-    <link rel="stylesheet" href="styles.css?v=20260606" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#10b981" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="stylesheet" href="styles.css?v=20260811" />
   </head>
   <body>
     <section class="auth-screen" id="authScreen">
@@ -237,6 +241,11 @@
           <a href="#budgets" class="nav-link">Budgets</a>
           <a href="#receipt" class="nav-link">Receipt Scan</a>
           <a href="#goals" class="nav-link">Savings</a>
+          <a href="#splits" class="nav-link">Split Bills</a>
+          <a href="#groups" class="nav-link">Group Budgets</a>
+          <a href="#challenges" class="nav-link">Challenges</a>
+          <a href="#tax" class="nav-link">Tax Tracker</a>
+          <a href="#discounts" class="nav-link">Discounts</a>
           <a href="#admin" class="nav-link hidden" id="adminNavLink">Admin</a>
           <a href="#recycle" class="nav-link">Recycle Bin</a>
         </nav>
@@ -673,10 +682,154 @@
             <div id="currencyList" class="currency-list"></div>
           </div>
         </section>
+
+        <!-- Feature 1: CSV Import -->
+        <section class="panel" id="importPanel" style="display:none;">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Bulk import</p>
+              <h2>Import expenses from CSV</h2>
+            </div>
+          </div>
+          <div class="import-area">
+            <input id="csvFileInput" type="file" accept=".csv,.txt" />
+            <p class="import-hint">CSV format: name, amount, category, date (YYYY-MM-DD)</p>
+            <div id="csvPreview" class="csv-preview hidden"></div>
+            <button id="importCsvBtn" class="primary-button" type="button" disabled>Import expenses</button>
+          </div>
+        </section>
+
+        <!-- Feature 3: Split Expenses -->
+        <section class="panel" id="splits" style="display:none;">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Split bills</p>
+              <h2>Track shared expenses</h2>
+            </div>
+          </div>
+          <form id="splitGroupForm" class="stacked-form">
+            <div class="form-row">
+              <label>Group name <input id="splitGroupName" type="text" placeholder="Trip to Lagos" required /></label>
+            </div>
+            <button class="primary-button" type="submit">Create group</button>
+          </form>
+          <div id="splitGroupList" class="split-group-list"></div>
+          <div id="splitDetail" class="split-detail hidden">
+            <h3 id="splitDetailName"></h3>
+            <form id="splitMemberForm" class="stacked-form inline-form">
+              <div class="form-row">
+                <label>Name <input id="splitMemberName" type="text" placeholder="Friend name" required /></label>
+                <label>Email <input id="splitMemberEmail" type="email" placeholder="Optional" /></label>
+              </div>
+              <button class="secondary-button" type="button" id="addSplitMemberBtn">Add member</button>
+            </form>
+            <div id="splitMemberList" class="member-chips"></div>
+            <form id="splitExpenseForm" class="stacked-form">
+              <div class="form-row">
+                <label>Description <input id="splitExpDesc" type="text" placeholder="Dinner" required /></label>
+                <label>Amount <input id="splitExpAmount" type="number" min="0.01" step="0.01" required /></label>
+              </div>
+              <div class="form-row">
+                <label>Paid by <select id="splitExpPaidBy"></select></label>
+                <label>Date <input id="splitExpDate" type="date" required /></label>
+              </div>
+              <button class="primary-button" type="submit">Add split expense</button>
+            </form>
+            <div id="splitExpenseList" class="expense-list"></div>
+            <button id="backToSplitGroups" class="secondary-button" type="button">Back to groups</button>
+          </div>
+        </section>
+
+        <!-- Feature 9: Group Budgets -->
+        <section class="panel" id="groups" style="display:none;">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Group budgets</p>
+              <h2>Budget for events & trips</h2>
+            </div>
+          </div>
+          <form id="groupBudgetForm" class="stacked-form">
+            <div class="form-row">
+              <label>Name <input id="groupBudgetName" type="text" placeholder="Hackathon trip" required /></label>
+              <label>Total budget <input id="groupBudgetTotal" type="number" min="1" step="1" required /></label>
+            </div>
+            <div class="form-row">
+              <label>Start <input id="groupBudgetStart" type="date" required /></label>
+              <label>End <input id="groupBudgetEnd" type="date" required /></label>
+            </div>
+            <button class="primary-button" type="submit">Create group budget</button>
+          </form>
+          <div id="groupBudgetList" class="budget-list"></div>
+        </section>
+
+        <!-- Feature 7: Savings Challenges -->
+        <section class="panel" id="challenges" style="display:none;">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Savings challenges</p>
+              <h2>Gamify your savings</h2>
+            </div>
+          </div>
+          <form id="challengeForm" class="stacked-form">
+            <div class="form-row">
+              <label>Name <input id="challengeName" type="text" placeholder="No-spend week" required /></label>
+              <label>Target amount <input id="challengeTarget" type="number" min="1" step="1" required /></label>
+            </div>
+            <div class="form-row">
+              <label>Start <input id="challengeStart" type="date" required /></label>
+              <label>End <input id="challengeEnd" type="date" required /></label>
+            </div>
+            <button class="primary-button" type="submit">Start challenge</button>
+          </form>
+          <div id="challengeList" class="challenge-list"></div>
+        </section>
+
+        <!-- Feature 10: Tax Tracker -->
+        <section class="panel" id="tax" style="display:none;">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Tax deduction tracker</p>
+              <h2>Track deductible expenses</h2>
+            </div>
+          </div>
+          <div id="taxSummary" class="tax-summary"></div>
+          <div id="taxCategoryList" class="tax-category-list"></div>
+        </section>
+
+        <!-- Feature 15: Student Discounts -->
+        <section class="panel" id="discounts" style="display:none;">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Student perks</p>
+              <h2>Available discounts</h2>
+            </div>
+          </div>
+          <div class="discount-filters">
+            <button class="discount-filter-btn active" data-category="">All</button>
+          </div>
+          <div id="discountList" class="discount-list"></div>
+        </section>
+
+        <!-- Feature 4: Budget Forecast -->
+        <section class="panel" id="forecastPanel" style="display:none;">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Budget forecast</p>
+              <h2>Spending prediction</h2>
+            </div>
+          </div>
+          <div id="forecastContent" class="forecast-content"></div>
+        </section>
+
       </main>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-    <script src="app.js?v=20260606"></script>
+    <script src="app.js?v=20260811"></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/sw.js").catch(() => {});
+      }
+    </script>
   </body>
 </html>

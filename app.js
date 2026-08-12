@@ -2759,3 +2759,526 @@ function formatMoneyInCurrency(value, currencyCode) {
 function formatDate(value) {
   return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(value));
 }
+
+// ──────────────────────────────────────────────────────────────
+// Feature 1: CSV Import
+// ──────────────────────────────────────────────────────────────
+
+function initCSVImport() {
+  const fileInput = document.querySelector("#csvFileInput");
+  const importBtn = document.querySelector("#importCsvBtn");
+  const preview = document.querySelector("#csvPreview");
+  if (!fileInput) return;
+  let parsedRows = [];
+
+  fileInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const lines = ev.target.result.split("\n").filter(l => l.trim());
+      parsedRows = lines.slice(1).map(line => {
+        const [name, amount, category, date] = line.split(",").map(s => s.trim());
+        return { name, amount: parseFloat(amount), category, date };
+      }).filter(r => r.name && !isNaN(r.amount));
+      preview.classList.remove("hidden");
+      preview.innerHTML = `<p>${parsedRows.length} rows found</p>` +
+        parsedRows.slice(0, 5).map(r => `<span class="csv-row">${r.name} - $${r.amount} - ${r.category} - ${r.date}</span>`).join("") +
+        (parsedRows.length > 5 ? `<span class="csv-row">...and ${parsedRows.length - 5} more</span>` : "");
+      importBtn.disabled = parsedRows.length === 0;
+    };
+    reader.readAsText(file);
+  });
+
+  importBtn.addEventListener("click", async () => {
+    if (!parsedRows.length) return;
+    try {
+      const data = await apiRequest("/api/expenses/import", {
+        method: "POST",
+        body: JSON.stringify({ rows: parsedRows }),
+      });
+      showNotification(`Imported ${data.imported} expenses${data.skipped ? `, ${data.skipped} skipped` : ""}`, "success");
+      parsedRows = [];
+      preview.classList.add("hidden");
+      importBtn.disabled = true;
+      fileInput.value = "";
+      await hydrateFromApi();
+      render();
+    } catch (err) {
+      showNotification(err.message || "Import failed", "error");
+    }
+  });
+}
+
+// ──────────────────────────────────────────────────────────────
+// Feature 3: Split Expenses
+// ──────────────────────────────────────────────────────────────
+
+let currentSplitGroupId = null;
+
+function initSplitExpenses() {
+  const groupForm = document.querySelector("#splitGroupForm");
+  const memberBtn = document.querySelector("#addSplitMemberBtn");
+  const expenseForm = document.querySelector("#splitExpenseForm");
+  const backBtn = document.querySelector("#backToSplitGroups");
+
+  if (groupForm) {
+    groupForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = document.querySelector("#splitGroupName").value.trim();
+      if (!name) return;
+      try {
+        await apiRequest("/api/split-groups", { method: "POST", body: JSON.stringify({ name }) });
+        document.querySelector("#splitGroupName").value = "";
+        loadSplitGroups();
+      } catch (err) { showNotification(err.message, "error"); }
+    });
+  }
+
+  if (memberBtn) {
+    memberBtn.addEventListener("click", async () => {
+      const name = document.querySelector("#splitMemberName").value.trim();
+      const email = document.querySelector("#splitMemberEmail").value.trim();
+      if (!name || !currentSplitGroupId) return;
+      try {
+        await apiRequest(`/api/split-groups/${currentSplitGroupId}/members`, {
+          method: "POST", body: JSON.stringify({ name, email }),
+        });
+        document.querySelector("#splitMemberName").value = "";
+        document.querySelector("#splitMemberEmail").value = "";
+        loadSplitGroupDetail(currentSplitGroupId);
+      } catch (err) { showNotification(err.message, "error"); }
+    });
+  }
+
+  if (expenseForm) {
+    expenseForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const desc = document.querySelector("#splitExpDesc").value.trim();
+      const amount = parseFloat(document.querySelector("#splitExpAmount").value);
+      const paidBy = parseInt(document.querySelector("#splitExpPaidBy").value);
+      const date = document.querySelector("#splitExpDate").value;
+      if (!desc || !amount || !paidBy || !date) return;
+      try {
+        await apiRequest("/api/split-expenses", {
+          method: "POST",
+          body: JSON.stringify({ description: desc, amount, paid_by: paidBy, split_group_id: currentSplitGroupId, split_type: "equal", splits: [], date }),
+        });
+        loadSplitGroupDetail(currentSplitGroupId);
+      } catch (err) { showNotification(err.message, "error"); }
+    });
+  }
+
+  if (backBtn) {
+    backBtn.addEventListener("click", () => {
+      document.querySelector("#splitDetail").classList.add("hidden");
+      loadSplitGroups();
+    });
+  }
+}
+
+async function loadSplitGroups() {
+  const list = document.querySelector("#splitGroupList");
+  if (!list) return;
+  try {
+    const groups = await apiRequest("/api/split-groups");
+    list.innerHTML = groups.length ? groups.map(g => `
+      <div class="split-group-card" data-id="${g.id}">
+        <strong>${g.name}</strong>
+        <span>${g.members?.length || 0} members | $${g.total_expenses || 0} total | $${g.unsettled_amount || 0} unsettled</span>
+      </div>
+    `).join("") : '<p class="empty-state">No split groups yet. Create one above.</p>';
+    list.querySelectorAll(".split-group-card").forEach(card => {
+      card.addEventListener("click", () => loadSplitGroupDetail(parseInt(card.dataset.id)));
+    });
+  } catch (err) { showNotification(err.message, "error"); }
+}
+
+async function loadSplitGroupDetail(groupId) {
+  currentSplitGroupId = groupId;
+  document.querySelector("#splitDetail").classList.remove("hidden");
+  try {
+    const groups = await apiRequest("/api/split-groups");
+    const group = groups.find(g => g.id === groupId);
+    if (group) {
+      document.querySelector("#splitDetailName").textContent = group.name;
+      const memberSelect = document.querySelector("#splitExpPaidBy");
+      memberSelect.innerHTML = (group.members || []).map(m => `<option value="${m.id}">${m.name}</option>`).join("");
+      const memberList = document.querySelector("#splitMemberList");
+      memberList.innerHTML = (group.members || []).map(m => `<span class="chip">${m.name}</span>`).join("");
+    }
+    const expenses = await apiRequest(`/api/split-groups/${groupId}/expenses`);
+    const expList = document.querySelector("#splitExpenseList");
+    expList.innerHTML = expenses.length ? expenses.map(e => `
+      <div class="expense-item">
+        <span>${e.description}</span>
+        <span>$${e.amount}</span>
+        <span>${e.date}</span>
+        <span class="badge ${e.settled ? 'badge-success' : 'badge-warning'}">${e.settled ? 'Settled' : 'Pending'}</span>
+      </div>
+    `).join("") : '<p class="empty-state">No expenses in this group yet.</p>';
+  } catch (err) { showNotification(err.message, "error"); }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Feature 9: Group Budgets
+// ──────────────────────────────────────────────────────────────
+
+function initGroupBudgets() {
+  const form = document.querySelector("#groupBudgetForm");
+  if (!form) return;
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const name = document.querySelector("#groupBudgetName").value.trim();
+    const total_budget = parseFloat(document.querySelector("#groupBudgetTotal").value);
+    const start_date = document.querySelector("#groupBudgetStart").value;
+    const end_date = document.querySelector("#groupBudgetEnd").value;
+    if (!name || !total_budget || !start_date || !end_date) return;
+    try {
+      await apiRequest("/api/group-budgets", {
+        method: "POST",
+        body: JSON.stringify({ name, total_budget, start_date, end_date, member_ids: [] }),
+      });
+      form.reset();
+      loadGroupBudgets();
+    } catch (err) { showNotification(err.message, "error"); }
+  });
+}
+
+async function loadGroupBudgets() {
+  const list = document.querySelector("#groupBudgetList");
+  if (!list) return;
+  try {
+    const budgets = await apiRequest("/api/group-budgets");
+    list.innerHTML = budgets.length ? budgets.map(b => {
+      const pct = b.total_budget > 0 ? Math.min(100, (b.spent / b.total_budget) * 100) : 0;
+      return `<div class="budget-item">
+        <div class="budget-info"><strong>${b.name}</strong><span>${formatMoney(b.spent)} / ${formatMoney(b.total_budget)}</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${pct > 90 ? '#ef4444' : pct > 70 ? '#f59e0b' : '#10b981'}"></div></div>
+        <span class="budget-dates">${b.start_date} to ${b.end_date}</span>
+      </div>`;
+    }).join("") : '<p class="empty-state">No group budgets yet.</p>';
+  } catch (err) { showNotification(err.message, "error"); }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Feature 7: Savings Challenges
+// ──────────────────────────────────────────────────────────────
+
+function initChallenges() {
+  const form = document.querySelector("#challengeForm");
+  if (!form) return;
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const name = document.querySelector("#challengeName").value.trim();
+    const target_amount = parseFloat(document.querySelector("#challengeTarget").value);
+    const start_date = document.querySelector("#challengeStart").value;
+    const end_date = document.querySelector("#challengeEnd").value;
+    if (!name || !target_amount || !start_date || !end_date) return;
+    try {
+      await apiRequest("/api/savings-challenges", {
+        method: "POST",
+        body: JSON.stringify({ name, target_amount, start_date, end_date }),
+      });
+      form.reset();
+      loadChallenges();
+    } catch (err) { showNotification(err.message, "error"); }
+  });
+}
+
+async function loadChallenges() {
+  const list = document.querySelector("#challengeList");
+  if (!list) return;
+  try {
+    const challenges = await apiRequest("/api/savings-challenges");
+    list.innerHTML = challenges.length ? challenges.map(c => {
+      const pct = c.target_amount > 0 ? Math.min(100, (c.current_amount / c.target_amount) * 100) : 0;
+      return `<div class="challenge-card ${c.completed ? 'completed' : ''}">
+        <div class="challenge-header">
+          <strong>${c.name}</strong>
+          <span class="streak-badge">🔥 ${c.streak_days} day streak</span>
+        </div>
+        <div class="challenge-progress">
+          <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:#10b981"></div></div>
+          <span>${formatMoney(c.current_amount)} / ${formatMoney(c.target_amount)} (${Math.round(pct)}%)</span>
+        </div>
+        <div class="challenge-dates">${c.start_date} to ${c.end_date}</div>
+        ${!c.completed ? `<button class="contribute-btn secondary-button" data-id="${c.id}" data-target="${c.target_amount}">Add contribution</button>` : '<span class="badge badge-success">Completed!</span>'}
+      </div>`;
+    }).join("") : '<p class="empty-state">No challenges yet. Start one above!</p>';
+    list.querySelectorAll(".contribute-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const amount = prompt("Enter contribution amount:");
+        if (!amount) return;
+        const newTotal = parseFloat(btn.dataset.target) > 0 ? parseFloat(amount) : 0;
+        try {
+          await apiRequest(`/api/savings-challenges/${btn.dataset.id}`, {
+            method: "PATCH",
+            body: JSON.stringify({ current_amount: parseFloat(amount) }),
+          });
+          loadChallenges();
+        } catch (err) { showNotification(err.message, "error"); }
+      });
+    });
+  } catch (err) { showNotification(err.message, "error"); }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Feature 10: Tax Tracker
+// ──────────────────────────────────────────────────────────────
+
+function initTaxTracker() {
+  loadTaxSummary();
+  loadTaxCategories();
+}
+
+async function loadTaxSummary() {
+  const summary = document.querySelector("#taxSummary");
+  if (!summary) return;
+  try {
+    const data = await apiRequest("/api/tax/summary");
+    summary.innerHTML = `
+      <div class="tax-total">
+        <strong>Total deductible: ${formatMoney(data.total_deductible)}</strong>
+        <span>${data.expense_count} eligible expenses</span>
+      </div>
+      <div class="tax-breakdown">
+        ${(data.by_category || []).map(c => `<div class="tax-row"><span>${c.category}</span><span>${formatMoney(c.amount)}</span></div>`).join("")}
+      </div>
+    `;
+  } catch (err) { summary.innerHTML = '<p class="empty-state">No tax data yet.</p>'; }
+}
+
+async function loadTaxCategories() {
+  const list = document.querySelector("#taxCategoryList");
+  if (!list) return;
+  try {
+    const cats = await apiRequest("/api/tax/categories");
+    list.innerHTML = cats.map(c => `<div class="tax-category-card">
+      <strong>${c.name}</strong>
+      <span>${c.description}</span>
+      <span class="badge">${c.deductible_percentage}% deductible</span>
+    </div>`).join("");
+  } catch (err) { list.innerHTML = '<p class="empty-state">Could not load tax categories.</p>'; }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Feature 15: Student Discounts
+// ──────────────────────────────────────────────────────────────
+
+function initDiscounts() {
+  loadDiscounts();
+}
+
+async function loadDiscounts(category = "") {
+  const list = document.querySelector("#discountList");
+  const filters = document.querySelector(".discount-filters");
+  if (!list) return;
+  try {
+    const url = category ? `/api/discounts?category=${encodeURIComponent(category)}` : "/api/discounts";
+    const discounts = await apiRequest(url);
+    list.innerHTML = discounts.map(d => `
+      <div class="discount-card">
+        <div class="discount-provider">${d.provider}</div>
+        <div class="discount-info">
+          <strong>${d.discount}</strong>
+          <span>${d.category}</span>
+        </div>
+        <a href="${d.url}" target="_blank" rel="noopener" class="discount-link">Get deal →</a>
+      </div>
+    `).join("");
+    if (filters && filters.children.length <= 1) {
+      const cats = await apiRequest("/api/discounts/categories");
+      cats.forEach(cat => {
+        const btn = document.createElement("button");
+        btn.className = "discount-filter-btn";
+        btn.dataset.category = cat;
+        btn.textContent = cat;
+        btn.addEventListener("click", () => {
+          filters.querySelectorAll(".discount-filter-btn").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          loadDiscounts(cat);
+        });
+        filters.appendChild(btn);
+      });
+      filters.querySelector('[data-category=""]').addEventListener("click", () => {
+        filters.querySelectorAll(".discount-filter-btn").forEach(b => b.classList.remove("active"));
+        filters.querySelector('[data-category=""]').classList.add("active");
+        loadDiscounts("");
+      });
+    }
+  } catch (err) { list.innerHTML = '<p class="empty-state">Could not load discounts.</p>'; }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Feature 4: Budget Forecast
+// ──────────────────────────────────────────────────────────────
+
+async function loadForecast() {
+  const content = document.querySelector("#forecastContent");
+  if (!content) return;
+  try {
+    const data = await apiRequest("/api/analytics/forecast");
+    content.innerHTML = `
+      <div class="forecast-summary">
+        <div class="forecast-metric">
+          <span>Projected total</span>
+          <strong class="${data.on_track ? 'text-success' : 'text-danger'}">${formatMoney(data.projected_total)}</strong>
+        </div>
+        <div class="forecast-metric">
+          <span>Daily rate</span>
+          <strong>${formatMoney(data.daily_rate)}</strong>
+        </div>
+        <div class="forecast-metric">
+          <span>Days elapsed</span>
+          <strong>${data.days_elapsed} / ${data.days_in_month}</strong>
+        </div>
+        <div class="forecast-metric">
+          <span>Status</span>
+          <strong class="${data.on_track ? 'text-success' : 'text-danger'}">${data.on_track ? 'On track' : 'Over budget risk'}</strong>
+        </div>
+      </div>
+      ${(data.category_forecasts || []).length ? `
+        <h3>Category forecasts</h3>
+        <div class="forecast-categories">
+          ${data.category_forecasts.map(c => `
+            <div class="forecast-cat">
+              <span>${c.category}</span>
+              <span>Spent: ${formatMoney(c.spent)}</span>
+              <span>Projected: ${formatMoney(c.projected)}</span>
+              ${c.budget > 0 ? `<span class="${c.over_budget ? 'text-danger' : ''}">Budget: ${formatMoney(c.budget)}</span>` : ''}
+            </div>
+          `).join("")}
+        </div>
+      ` : ''}
+    `;
+  } catch (err) { content.innerHTML = '<p class="empty-state">Could not load forecast.</p>'; }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Feature 13: Health Score display
+// ──────────────────────────────────────────────────────────────
+
+async function loadHealthScore() {
+  const el = document.querySelector("#healthScore");
+  const caption = document.querySelector("#healthCaption");
+  if (!el) return;
+  try {
+    const data = await apiRequest("/api/analytics/health-score");
+    el.textContent = `${data.score}/100`;
+    el.className = data.score >= 80 ? 'text-success' : data.score >= 60 ? 'text-warning' : 'text-danger';
+    if (caption) caption.textContent = data.grade;
+  } catch (err) {
+    el.textContent = "N/A";
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Feature 11: Dark mode sync
+// ──────────────────────────────────────────────────────────────
+
+async function syncDarkMode(darkMode) {
+  try {
+    await apiRequest("/api/settings/dark-mode", {
+      method: "PATCH",
+      body: JSON.stringify({ dark_mode: darkMode }),
+    });
+  } catch (err) { /* silent */ }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Feature 12: Push Notifications
+// ──────────────────────────────────────────────────────────────
+
+async function initPushNotifications() {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") return;
+    const subscription = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: null,
+    });
+    if (subscription) {
+      const sub = subscription.toJSON();
+      await apiRequest("/api/push/subscribe", {
+        method: "POST",
+        body: JSON.stringify({ endpoint: sub.endpoint, keys: sub.keys || {} }),
+      });
+    }
+  } catch (err) { /* push not available */ }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Feature 6: Load insights
+// ──────────────────────────────────────────────────────────────
+
+async function loadInsights() {
+  const list = document.querySelector("#insightsList");
+  if (!list) return;
+  try {
+    const insights = await apiRequest("/api/analytics/insights");
+    list.innerHTML = insights.map(i => `
+      <div class="insight-item insight-${i.severity}">
+        <strong>${i.title}</strong>
+        <span>${i.message}</span>
+      </div>
+    `).join("");
+  } catch (err) { list.innerHTML = '<p class="empty-state">Could not load insights.</p>'; }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Feature 5: Load recurring suggestions
+// ──────────────────────────────────────────────────────────────
+
+async function loadRecurringSuggestions() {
+  try {
+    const suggestions = await apiRequest("/api/analytics/recurring-suggestions");
+    if (!suggestions.length) return;
+    const list = document.querySelector("#recurringList");
+    if (!list) return;
+    const existing = list.innerHTML;
+    const suggestionsHTML = suggestions.map(s => `
+      <div class="suggestion-card">
+        <span class="suggestion-name">${s.name}</span>
+        <span>${formatMoney(s.amount)}/mo</span>
+        <span>${s.category}</span>
+        <span class="confidence">${Math.round(s.confidence * 100)}% match</span>
+        <button class="create-recurring-btn secondary-button" data-name="${s.name}" data-amount="${s.amount}" data-category="${s.category}" data-freq="${s.frequency}">Create</button>
+      </div>
+    `).join("");
+    if (!document.querySelector("#recurringSuggestions")) {
+      const section = document.createElement("div");
+      section.id = "recurringSuggestions";
+      section.innerHTML = `<div class="panel-header" style="margin-top:16px"><div><p class="eyebrow">Auto-detected</p><h3>Suggested recurring expenses</h3></div></div>${suggestionsHTML}`;
+      list.parentElement.appendChild(section);
+    }
+    document.querySelectorAll(".create-recurring-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const freq = btn.dataset.freq;
+        const dayOfWeek = freq === "weekly" ? new Date().getDay() - 1 : 0;
+        const dayOfMonth = freq !== "weekly" ? new Date().getDate() : null;
+        try {
+          await apiRequest("/api/recurring-expenses", {
+            method: "POST",
+            body: JSON.stringify({
+              name: btn.dataset.name,
+              amount: parseFloat(btn.dataset.amount),
+              category: btn.dataset.category,
+              frequency: freq,
+              day_of_week: freq === "weekly" ? dayOfWeek : null,
+              day_of_month: freq !== "weekly" ? dayOfMonth : null,
+            }),
+          });
+          showNotification("Recurring expense created", "success");
+          loadRecurring();
+        } catch (err) { showNotification(err.message, "error"); }
+      });
+    });
+  } catch (err) { /* silent */ }
+}
+
+// Hook into existing init to load new features
+const _originalRender = typeof render === 'function' ? render : null;
+const _originalShowApp = typeof showApp === 'function' ? showApp : null;

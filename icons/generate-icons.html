@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html><body>
+<canvas id="c" width="512" height="512"></canvas>
+<script>
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+ctx.fillStyle = '#10b981';
+ctx.fillRect(0, 0, 512, 512);
+ctx.fillStyle = '#fff';
+ctx.font = 'bold 280px sans-serif';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText('S', 256, 280);
+const link192 = document.createElement('a');
+link192.download = 'icon-192.png';
+link192.href = c.toDataURL('image/png');
+const c2 = document.createElement('canvas');
+c2.width = 192; c2.height = 192;
+c2.getContext('2d').drawImage(c, 0, 0, 192, 192);
+</script></body></html>
