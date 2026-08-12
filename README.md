@@ -96,7 +96,13 @@ curl http://127.0.0.1:8003/health
 - `GET /api/search/expenses` — search and filter expenses by text, category, date, amount, and archive status
 - `POST /api/expenses` — create expense
 - `PATCH /api/expenses/{id}/delete` — soft-delete expense
+- `POST /api/expenses/{id}/restore` — restore soft-deleted expense
+- `DELETE /api/expenses/{id}` — permanently delete (only for soft-deleted items)
+- `GET /api/expenses/recycle` — list deleted expenses (with pagination and filtering)
 - `POST /api/expenses/archive` — archive old expenses for the current user
+- `POST /api/budget-shares` — share budget with another user
+- `GET /api/budget-shares` — list sent budget shares
+- `GET /api/budget-shares/received` — list received budget shares
 - `GET /metrics` — Prometheus metrics
 
 For a full list of endpoints consult `backend/main.py`.
@@ -307,4 +313,4 @@ Edge / security flow:
 - Long term
 	- Multi-user sharing or export/import of budgets
 	- Mobile-native wrapper or advanced PWA support (offline sync)
-	- Multi-region deployment with managed DB (Postgres) and production-grade 
+	- Multi-region deployment with managed DB (Postgres) and production-grade
