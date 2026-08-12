@@ -1,4 +1,4 @@
-const CACHE_NAME = "studentspend-v1";
+const CACHE_NAME = "studentspend-v2";
 const OFFLINE_URLS = [
   "/",
   "/index.html",
@@ -25,9 +25,19 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+
   if (event.request.url.includes("/api/")) {
     event.respondWith(
       fetch(event.request).catch(() => {
+        if (event.request.url.includes("/api/state")) {
+          return caches.match(event.request).then((cached) => {
+            if (cached) return cached;
+            return new Response(JSON.stringify({ detail: "Offline" }), {
+              status: 503,
+              headers: { "Content-Type": "application/json" },
+            });
+          });
+        }
         return new Response(JSON.stringify({ detail: "Offline" }), {
           status: 503,
           headers: { "Content-Type": "application/json" },
@@ -36,6 +46,7 @@ self.addEventListener("fetch", (event) => {
     );
     return;
   }
+
   event.respondWith(
     caches.match(event.request).then((cached) => {
       const fetched = fetch(event.request).then((response) => {
@@ -54,10 +65,42 @@ self.addEventListener("push", (event) => {
   const data = event.data ? event.data.json() : {};
   const title = data.title || "StudentSpend";
   const body = data.body || "You have a new notification";
-  event.waitUntil(self.registration.showNotification(title, { body, icon: "/icons/icon-192.png", badge: "/icons/icon-192.png" }));
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      vibrate: [100, 50, 100],
+      data: { url: "/" },
+    })
+  );
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  event.waitUntil(clients.openWindow("/"));
+  event.waitUntil(
+    clients.matchAll({ type: "window" }).then((windowClients) => {
+      for (const client of windowClients) {
+        if (client.url === "/" && "focus" in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow("/");
+      }
+    })
+  );
 });
+
+self.addEventListener("backgroundsync", (event) => {
+  if (event.tag === "sync-expenses") {
+    event.waitUntil(syncPendingExpenses());
+  }
+});
+
+async function syncPendingExpenses() {
+  const clients_list = await self.clients.matchAll();
+  for (const client of clients_list) {
+    client.postMessage({ type: "SYNC_EXPENSES" });
+  }
+}

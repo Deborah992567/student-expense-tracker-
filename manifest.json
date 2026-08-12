@@ -7,6 +7,9 @@
   "background_color": "#0f172a",
   "theme_color": "#10b981",
   "orientation": "portrait-primary",
+  "scope": "/",
+  "categories": ["finance", "education", "productivity"],
+  "screenshots": [],
   "icons": [
     {
       "src": "/icons/icon-192.png",
