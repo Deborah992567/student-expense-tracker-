@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     backup_pg_dump_path: str = "pg_dump"
     maintenance_interval_seconds: int = 300
     archive_after_days: int = 365
+    recycle_bin_ttl_days: int = 30
 
     model_config = SettingsConfigDict(env_file=ENV_FILE, env_file_encoding="utf-8")
 

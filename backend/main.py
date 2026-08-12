@@ -1908,6 +1908,15 @@ def cleanup_expired_data() -> None:
         db.query(models.RefreshToken).filter(models.RefreshToken.expires_at < now).delete()
         # Purge expired email verification codes
         db.query(models.EmailVerificationCode).filter(models.EmailVerificationCode.expires_at < now).delete()
+        # Purge soft-deleted expenses older than recycle_bin_ttl_days
+        ttl_days = get_settings().recycle_bin_ttl_days
+        cutoff = now - timedelta(days=ttl_days)
+        deleted_count = db.query(models.Expense).filter(
+            models.Expense.deleted == True,
+            models.Expense.deleted_at < cutoff,
+        ).delete()
+        if deleted_count:
+            logger.info("Purged %d permanently deleted expenses older than %d days", deleted_count, ttl_days)
         db.commit()
         logger.info("Background cleanup: expired tokens and codes purged.")
     except Exception as e:
