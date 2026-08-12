@@ -1,0 +1,14 @@
+.git
+.github
+.vscode
+.qodo
+.sixth
+__pycache__
+*.pyc
+*.pyo
+venv/
+.env
+backend/backups/
+*.db
+*.sqlite3
+node_modules/
