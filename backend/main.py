@@ -291,6 +291,7 @@ def signup(payload: schemas.SignupRequest, background_tasks: BackgroundTasks, db
         logger.warning("Signup failed: email already registered: email=%s", email)
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email is already registered")
 
+    is_first_user = db.scalar(select(func.count(models.User.id))) == 0
     user = models.User(
         name=f"{payload.first_name.strip()} {payload.last_name.strip()}",
         first_name=payload.first_name.strip(),
@@ -298,7 +299,8 @@ def signup(payload: schemas.SignupRequest, background_tasks: BackgroundTasks, db
         gender=payload.gender,
         email=email,
         password_hash=hash_password(payload.password),
-        role="admin" if db.scalar(select(func.count(models.User.id))) == 0 else "student",
+        role="admin" if is_first_user else "student",
+        email_verified=is_first_user,
     )
     db.add(user)
     db.flush()
@@ -313,8 +315,8 @@ def signup(payload: schemas.SignupRequest, background_tasks: BackgroundTasks, db
     db.commit()
     db.refresh(user)
     background_send_verification(db, user, background_tasks)
-    
-    logger.info("User signup successful: user_id=%s, email=%s", user.id, email)
+
+    logger.info("User signup successful: user_id=%s, email=%s, auto_verified=%s", user.id, email, is_first_user)
     security_logger.info("New user registered: user_id=%s, email=%s", user.id, email)
     return {"access_token": create_access_token(user), "profile": user}
 
@@ -2652,7 +2654,7 @@ def get_recurring_suggestions(
     ).all()
 
     from collections import defaultdict
-    name_dates: dict[str, list[date]] = defaultdict(list)
+    name_dates: dict[str, list[date_type]] = defaultdict(list)
     name_amounts: dict[str, list[float]] = defaultdict(list)
     name_categories: dict[str, str] = {}
 

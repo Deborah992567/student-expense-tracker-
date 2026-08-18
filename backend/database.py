@@ -15,6 +15,17 @@ logger = logging.getLogger(__name__)
 
 def ensure_database_exists(url: str) -> None:
     parsed = make_url(url)
+
+    if parsed.drivername.startswith("sqlite"):
+        db_path = parsed.database
+        if db_path and db_path != ":memory:":
+            db_file = Path(db_path)
+            if not db_file.is_absolute():
+                db_file = Path.cwd() / db_file
+            db_file.parent.mkdir(parents=True, exist_ok=True)
+            logger.info("SQLite database path ensured: %s", db_file)
+        return
+
     if not parsed.drivername.startswith("mysql"):
         return
 

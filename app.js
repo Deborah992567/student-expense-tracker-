@@ -93,35 +93,35 @@ let pendingVerificationEmail = localStorage.getItem(verificationEmailKey) || "";
 let pendingResetToken = "";
 let editingExpenseId = null;
 let editingRecurringId = null;
-const sessionMessageElem = document.querySelector("#sessionMessage");
+let sessionMessageElem = document.querySelector("#sessionMessage");
 
-const authScreen = document.querySelector("#authScreen");
-const appShell = document.querySelector("#appShell");
-const authForm = document.querySelector("#authForm");
-const authTitle = document.querySelector("#authTitle");
-const authSubtitle = document.querySelector("#authSubtitle");
-const authNameField = document.querySelector("#authNameField");
-const authGenderField = document.querySelector("#authGenderField");
-const authFirstName = document.querySelector("#authFirstName");
-const authLastName = document.querySelector("#authLastName");
-const authGender = document.querySelector("#authGender");
-const authEmail = document.querySelector("#authEmail");
-const authPassword = document.querySelector("#authPassword");
-const authConfirmField = document.querySelector("#authConfirmField");
-const authConfirmPassword = document.querySelector("#authConfirmPassword");
-const authEmailField = document.querySelector("#authEmailField");
-const authCodeField = document.querySelector("#authCodeField");
-const authCode = document.querySelector("#authCode");
-const authSubmit = document.querySelector("#authSubmit");
-const authMessage = document.querySelector("#authMessage");
-const authModeToggle = document.querySelector("#authModeToggle");
-const authBackButton = document.querySelector("#authBackButton");
-const resendCodeButton = document.querySelector("#resendCodeButton");
-const logoutButton = document.querySelector("#logoutButton");
-const passwordToggle = document.querySelector("#passwordToggle");
-const forgotPasswordLink = document.querySelector("#forgotPasswordLink");
-const forgotPasswordRow = forgotPasswordLink?.closest(".forgot-password-row");
-const themeToggle = document.querySelector("#themeToggle");
+let authScreen = document.querySelector("#authScreen");
+let appShell = document.querySelector("#appShell");
+let authForm = document.querySelector("#authForm");
+let authTitle = document.querySelector("#authTitle");
+let authSubtitle = document.querySelector("#authSubtitle");
+let authNameField = document.querySelector("#authNameField");
+let authGenderField = document.querySelector("#authGenderField");
+let authFirstName = document.querySelector("#authFirstName");
+let authLastName = document.querySelector("#authLastName");
+let authGender = document.querySelector("#authGender");
+let authEmail = document.querySelector("#authEmail");
+let authPassword = document.querySelector("#authPassword");
+let authConfirmField = document.querySelector("#authConfirmField");
+let authConfirmPassword = document.querySelector("#authConfirmPassword");
+let authEmailField = document.querySelector("#authEmailField");
+let authCodeField = document.querySelector("#authCodeField");
+let authCode = document.querySelector("#authCode");
+let authSubmit = document.querySelector("#authSubmit");
+let authMessage = document.querySelector("#authMessage");
+let authModeToggle = document.querySelector("#authModeToggle");
+let authBackButton = document.querySelector("#authBackButton");
+let resendCodeButton = document.querySelector("#resendCodeButton");
+let logoutButton = document.querySelector("#logoutButton");
+let passwordToggle = document.querySelector("#passwordToggle");
+let forgotPasswordLink = document.querySelector("#forgotPasswordLink");
+let forgotPasswordRow = forgotPasswordLink?.closest(".forgot-password-row");
+let themeToggle = document.querySelector("#themeToggle");
 const expenseForm = document.querySelector("#expenseForm");
 const goalForm = document.querySelector("#goalForm");
 const categorySelect = document.querySelector("#expenseCategory");
@@ -191,7 +191,40 @@ function getApiBase() {
 }
 
 async function init() {
-  authForm.addEventListener("submit", handleAuthSubmit);
+  authScreen = document.querySelector("#authScreen");
+  appShell = document.querySelector("#appShell");
+  authForm = document.querySelector("#authForm");
+  authTitle = document.querySelector("#authTitle");
+  authSubtitle = document.querySelector("#authSubtitle");
+  authNameField = document.querySelector("#authNameField");
+  authGenderField = document.querySelector("#authGenderField");
+  authFirstName = document.querySelector("#authFirstName");
+  authLastName = document.querySelector("#authLastName");
+  authGender = document.querySelector("#authGender");
+  authEmail = document.querySelector("#authEmail");
+  authPassword = document.querySelector("#authPassword");
+  authConfirmField = document.querySelector("#authConfirmField");
+  authConfirmPassword = document.querySelector("#authConfirmPassword");
+  authEmailField = document.querySelector("#authEmailField");
+  authCodeField = document.querySelector("#authCodeField");
+  authCode = document.querySelector("#authCode");
+  authSubmit = document.querySelector("#authSubmit");
+  authMessage = document.querySelector("#authMessage");
+  authModeToggle = document.querySelector("#authModeToggle");
+  authBackButton = document.querySelector("#authBackButton");
+  resendCodeButton = document.querySelector("#resendCodeButton");
+  logoutButton = document.querySelector("#logoutButton");
+  passwordToggle = document.querySelector("#passwordToggle");
+  forgotPasswordLink = document.querySelector("#forgotPasswordLink");
+  forgotPasswordRow = forgotPasswordLink?.closest(".forgot-password-row");
+  themeToggle = document.querySelector("#themeToggle");
+
+  if (authForm) {
+    authForm.addEventListener("submit", handleAuthSubmit);
+  } else {
+    console.warn("Auth form is missing from the DOM.");
+  }
+
   if (authModeToggle) {
     authModeToggle.addEventListener("click", (event) => {
       event.preventDefault();
@@ -200,8 +233,15 @@ async function init() {
   } else {
     console.warn("Auth mode toggle button is missing from the DOM.");
   }
-  authBackButton.addEventListener("click", handleAuthBack);
-  resendCodeButton.addEventListener("click", resendVerificationCode);
+
+  if (authBackButton) {
+    authBackButton.addEventListener("click", handleAuthBack);
+  }
+
+  if (resendCodeButton) {
+    resendCodeButton.addEventListener("click", resendVerificationCode);
+  }
+
   const logoutButtonElement = document.querySelector("#logoutButton");
   if (logoutButtonElement) {
     logoutButtonElement.addEventListener("click", logout);
@@ -300,6 +340,16 @@ async function init() {
   // Recycle bin actions
   const recycleListEl = document.querySelector("#recycleList");
   if (recycleListEl) recycleListEl.addEventListener("click", handleRecycleListClick);
+
+  function handleHashChange() {
+    const recycleSection = document.querySelector("#recycle");
+    if (!recycleSection) return;
+    const isRecycle = window.location.hash === "#recycle";
+    recycleSection.style.display = isRecycle ? "block" : "none";
+    if (isRecycle) {
+      loadRecycleBin();
+    }
+  }
 
   // Show/hide recycle panel on hash change
   window.addEventListener("hashchange", handleHashChange);
@@ -407,6 +457,15 @@ async function handleAuthSubmit(event) {
       body: JSON.stringify(payload),
       skipAuth: true,
     });
+
+    if (data.requires_two_factor) {
+      authToken = null;
+      authMessage.textContent = "Enter the code from your authenticator app.";
+      authMode = "verify";
+      renderAuthMode();
+      showAuth();
+      return;
+    }
 
     authToken = data.access_token;
     currentUserEmail = data.profile.email;
@@ -2447,14 +2506,14 @@ async function apiRequest(path, options = {}) {
 
   if (!response.ok) {
     const message = await readApiError(response);
-    // Try token refresh when receiving 401
-    if (response.status === 401) {
+    // Try token refresh when receiving 401 on authenticated requests
+    if (response.status === 401 && authToken && !skipAuth) {
       try {
         const refreshed = await refreshAccessToken();
         if (refreshed) {
           // retry original request once
-          if (authToken && !skipAuth) headers.Authorization = `Bearer ${authToken}`;
-          const retried = await fetch(`${apiBase}${path}`, { headers, ...fetchOptions });
+          headers.Authorization = `Bearer ${authToken}`;
+          const retried = await fetch(`${apiBase}${path}`, { credentials: fetchOptions.credentials ?? "include", headers, ...fetchOptions });
           if (retried.ok) return retried.json();
         }
       } catch (err) {
