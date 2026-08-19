@@ -36,7 +36,7 @@ class ExpenseCreate(BaseModel):
 class ExpenseRead(ExpenseCreate):
     id: int
     deleted: bool | None = False
-    deleted_at: str | None = None
+    deleted_at: datetime | None = None
     receipt_path: str | None = None
     tax_deductible: bool = False
     tax_category: str | None = None

@@ -362,7 +362,10 @@ def verify_refresh_token(db: Session, plaintext: str):
         except Exception:
             logger.exception("Error handling refresh token reuse for jti=%s", rt.jti)
         return None
-    if rt.expires_at < datetime.now(UTC):
+    expires_at = rt.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=UTC)
+    if expires_at < datetime.now(UTC):
         return None
     return rt
 

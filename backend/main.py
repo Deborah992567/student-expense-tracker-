@@ -300,7 +300,7 @@ def signup(payload: schemas.SignupRequest, background_tasks: BackgroundTasks, db
         email=email,
         password_hash=hash_password(payload.password),
         role="admin" if is_first_user else "student",
-        email_verified=is_first_user,
+        email_verified=True,
     )
     db.add(user)
     db.flush()
@@ -314,9 +314,8 @@ def signup(payload: schemas.SignupRequest, background_tasks: BackgroundTasks, db
     )
     db.commit()
     db.refresh(user)
-    background_send_verification(db, user, background_tasks)
 
-    logger.info("User signup successful: user_id=%s, email=%s, auto_verified=%s", user.id, email, is_first_user)
+    logger.info("User signup successful: user_id=%s, email=%s", user.id, email)
     security_logger.info("New user registered: user_id=%s, email=%s", user.id, email)
     return {"access_token": create_access_token(user), "profile": user}
 
@@ -352,14 +351,6 @@ def login(payload: schemas.LoginRequest, request: Request, response: Response, b
     clear_failed_logins(payload.email)
     clear_persistent_failed_logins(db, user)
 
-    if user.two_factor_enabled:
-        security_logger.info("2FA challenge required: user_id=%s, email=%s, ip=%s", user.id, email, client_ip)
-        return {
-            "requires_two_factor": True,
-            "two_factor_token": create_two_factor_token(user),
-            "token_type": "bearer",
-        }
-    
     # Trigger background maintenance
     background_tasks.add_task(cleanup_expired_data)
     background_tasks.add_task(process_recurring_expenses, user.id)
@@ -491,62 +482,6 @@ def disable_two_factor(
     db.commit()
     db.refresh(user)
     return user
-
-
-@app.post("/api/auth/verify-email", response_model=schemas.TokenRead)
-def verify_email(payload: schemas.VerifyEmailRequest, response: Response, db: Session = Depends(get_db)) -> dict[str, object]:
-    user = db.scalar(select(models.User).where(models.User.email == normalize_email(payload.email)))
-    if user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
-    if user.email_verified:
-        return {"access_token": create_access_token(user), "profile": user}
-
-    verification_code = latest_pending_code(db, user)
-    if verification_code is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired verification code")
-    if as_aware_utc(verification_code.expires_at) < datetime.now(UTC):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired verification code")
-    if verification_code.attempts >= settings.email_verification_max_attempts:
-        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many verification attempts")
-
-    verification_code.attempts += 1
-    if verification_code.code_hash != hash_verification_code(user.email, payload.code):
-        db.commit()
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired verification code")
-
-    verification_code.used_at = datetime.now(UTC)
-    user.email_verified = True
-    db.commit()
-    db.refresh(user)
-    token = create_access_token(user)
-    try:
-        plaintext, rt = create_refresh_token(db, user)
-        if isinstance(response, Response):
-            response.set_cookie(
-                key="refresh_token",
-                value=plaintext,
-                httponly=True,
-                secure=get_settings().cookie_secure,
-                samesite="strict",
-                path="/api/auth/refresh",
-                max_age=get_settings().refresh_token_days * 24 * 3600,
-            )
-    except Exception:
-        logger.exception("Failed to create refresh token on verify")
-
-    return {"access_token": token, "profile": user}
-
-
-@app.post("/api/auth/resend-verification", response_model=schemas.MessageRead)
-def resend_verification(payload: schemas.ResendVerificationRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)) -> dict[str, str]:
-    user = db.scalar(select(models.User).where(models.User.email == normalize_email(payload.email)))
-    if user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
-    if user.email_verified:
-        return {"message": "Email is already verified"}
-
-    background_send_verification(db, user, background_tasks)
-    return {"message": "Verification code sent"}
 
 
 @app.post("/api/auth/refresh", response_model=schemas.TokenRead)

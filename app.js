@@ -238,10 +238,6 @@ async function init() {
     authBackButton.addEventListener("click", handleAuthBack);
   }
 
-  if (resendCodeButton) {
-    resendCodeButton.addEventListener("click", resendVerificationCode);
-  }
-
   const logoutButtonElement = document.querySelector("#logoutButton");
   if (logoutButtonElement) {
     logoutButtonElement.addEventListener("click", logout);
@@ -431,11 +427,6 @@ async function handleAuthSubmit(event) {
   toggleLoading(authSubmit, true, authSubmit.textContent);
 
   try {
-    if (authMode === "verify") {
-      await verifyEmailCode();
-      return;
-    }
-
     if (authMode === "reset") {
       await submitPasswordReset();
       return;
@@ -458,32 +449,12 @@ async function handleAuthSubmit(event) {
       skipAuth: true,
     });
 
-    if (data.requires_two_factor) {
-      authToken = null;
-      authMessage.textContent = "Enter the code from your authenticator app.";
-      authMode = "verify";
-      renderAuthMode();
-      showAuth();
-      return;
-    }
-
     authToken = data.access_token;
     currentUserEmail = data.profile.email;
     localStorage.setItem(tokenKey, authToken);
     localStorage.setItem(profileEmailKey, currentUserEmail);
     state = loadState(currentUserEmail);
     authPassword.value = "";
-    if (!data.profile.email_verified) {
-      pendingVerificationEmail = data.profile.email;
-      localStorage.setItem(verificationEmailKey, pendingVerificationEmail);
-      authMessage.textContent = authMode === "signup"
-        ? "We sent a verification code. Check your email or the backend terminal in development."
-        : "Verify your email before opening your dashboard.";
-      authMode = "verify";
-      renderAuthMode();
-      showAuth();
-      return;
-    }
 
     showApp();
     await hydrateFromApi();
@@ -492,15 +463,11 @@ async function handleAuthSubmit(event) {
   } catch (error) {
     showNotification(error.message || "Could not sign in. Check your details and try again.", "error");
   } finally {
-    toggleLoading(authSubmit, false, authMode === "verify" ? "Verify account" : authMode === "reset" ? "Update password" : (authMode === "signup" ? "Create account" : "Sign in"));
+    toggleLoading(authSubmit, false, authMode === "reset" ? "Update password" : (authMode === "signup" ? "Create account" : "Sign in"));
   }
 }
 
 function handleAuthBack() {
-  if (authMode === "verify") {
-    returnToSignup();
-    return;
-  }
   if (authMode === "reset") {
     pendingResetToken = "";
     authPassword.value = "";
@@ -560,43 +527,37 @@ function returnToSignup() {
 
 function renderAuthMode() {
   const isSignup = authMode === "signup";
-  const isVerify = authMode === "verify";
   const isReset = authMode === "reset";
-  const submitLabel = isVerify ? "Verify account" : isReset ? "Update password" : isSignup ? "Create account" : "Sign in";
-  authTitle.textContent = isVerify ? "Verify email" : isReset ? "Set a new password" : isSignup ? "Create your account" : "Welcome back";
+  const submitLabel = isReset ? "Update password" : isSignup ? "Create account" : "Sign in";
+  authTitle.textContent = isReset ? "Set a new password" : isSignup ? "Create your account" : "Welcome back";
   if (authSubtitle) {
-    authSubtitle.textContent = isVerify
-      ? "Enter the six-digit code we sent so your dashboard stays protected."
-      : isReset
-        ? "Choose a strong new password for your account."
-        : isSignup
-          ? "Start with a clean budget workspace built for student life."
-          : "Pick up your budget, goals, and spending streaks.";
+    authSubtitle.textContent = isReset
+      ? "Choose a strong new password for your account."
+      : isSignup
+        ? "Start with a clean budget workspace built for student life."
+        : "Pick up your budget, goals, and spending streaks.";
   }
   setAuthSubmitLabel(submitLabel);
   authModeToggle.textContent = isSignup ? "Sign in instead" : "Create an account";
   authNameField.classList.toggle("hidden", !isSignup);
   authGenderField.classList.toggle("hidden", !isSignup);
-  authCodeField.classList.toggle("hidden", !isVerify);
-  resendCodeButton.classList.toggle("hidden", !isVerify);
-  authBackButton.classList.toggle("hidden", !(isVerify || isReset));
-  authModeToggle.classList.toggle("hidden", isVerify || isReset);
-  forgotPasswordRow?.classList.toggle("hidden", !(!isSignup && !isVerify && !isReset));
+  authCodeField?.classList.add("hidden");
+  resendCodeButton?.classList.add("hidden");
+  authBackButton.classList.toggle("hidden", !isReset);
+  authModeToggle.classList.toggle("hidden", isReset);
+  forgotPasswordRow?.classList.toggle("hidden", !(!isSignup && !isReset));
   authEmailField?.classList.toggle("hidden", isReset);
   authConfirmField?.classList.toggle("hidden", !isReset);
   authFirstName.required = isSignup;
   authLastName.required = isSignup;
   authGender.required = isSignup;
   authEmail.required = !isReset;
-  authEmail.readOnly = isVerify;
-  authPassword.required = !isVerify;
-  authPassword.closest("label")?.classList.toggle("hidden", isVerify);
+  authEmail.readOnly = false;
+  authPassword.required = true;
+  authPassword.closest("label")?.classList.remove("hidden");
   authConfirmPassword.required = isReset;
-  authCode.required = isVerify;
+  authCode.required = false;
   authPassword.autocomplete = (isSignup || isReset) ? "new-password" : "current-password";
-  if (isVerify && pendingVerificationEmail) {
-    authEmail.value = pendingVerificationEmail;
-  }
 }
 
 function setAuthSubmitLabel(label) {
@@ -644,48 +605,6 @@ async function logout(event) {
   authMessage.textContent = "";
   renderAuthMode();
   showAuth();
-}
-
-async function verifyEmailCode() {
-  const data = await apiRequest("/api/auth/verify-email", {
-    method: "POST",
-    body: JSON.stringify({
-      email: authEmail.value.trim(),
-      code: authCode.value.trim(),
-    }),
-    skipAuth: true,
-  });
-
-  authToken = data.access_token;
-  currentUserEmail = data.profile.email;
-  localStorage.setItem(tokenKey, authToken);
-  localStorage.setItem(profileEmailKey, currentUserEmail);
-  state = loadState(currentUserEmail);
-  pendingVerificationEmail = "";
-  localStorage.removeItem(verificationEmailKey);
-  authCode.value = "";
-  authMode = "login";
-  renderAuthMode();
-  showApp();
-  await hydrateFromApi();
-  render();
-}
-
-async function resendVerificationCode() {
-  authMessage.textContent = "";
-  resendCodeButton.disabled = true;
-  try {
-    const data = await apiRequest("/api/auth/resend-verification", {
-      method: "POST",
-      body: JSON.stringify({ email: authEmail.value.trim() }),
-      skipAuth: true,
-    });
-    authMessage.textContent = data.message;
-  } catch (error) {
-    authMessage.textContent = error.message || "Could not resend the code.";
-  } finally {
-    resendCodeButton.disabled = false;
-  }
 }
 
 async function handleForgotPassword(event) {
@@ -2209,13 +2128,6 @@ async function hydrateFromApi() {
     await fetchRecurringExpenses();
   } catch (error) {
     apiOnline = false;
-    if (error.status === 403 && error.message === "Email verification required") {
-      authMode = "verify";
-      pendingVerificationEmail = pendingVerificationEmail || authEmail.value.trim();
-      authMessage.textContent = "Verify your email before opening your dashboard.";
-      renderAuthMode();
-      showAuth();
-    }
   }
 }
 

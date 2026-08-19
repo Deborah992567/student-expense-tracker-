@@ -113,20 +113,19 @@ class TestLogout:
 
 
 class TestEmailVerification:
-    def test_verify_email_invalid_code(self, client, create_test_user):
+    def test_verify_email_removed(self, client, create_test_user):
         response = client.post(
             "/api/auth/verify-email",
             json={"email": "test@example.com", "code": "000000"},
         )
-        assert response.status_code == 400
+        assert response.status_code in [404, 405]
 
-    def test_resend_verification(self, client, create_test_user):
+    def test_resend_verification_removed(self, client, create_test_user):
         response = client.post(
             "/api/auth/resend-verification",
             json={"email": "test@example.com"},
         )
-        assert response.status_code == 200
-        assert "message" in response.json()
+        assert response.status_code in [404, 405]
 
 
 class TestPasswordReset:
@@ -148,6 +147,6 @@ class TestPasswordReset:
     def test_reset_password_invalid_token(self, client):
         response = client.post(
             "/api/auth/reset-password",
-            json={"token": "invalid-token", "new_password": "NewPassword123!"},
+            json={"token": "a" * 40, "new_password": "NewPassword123!"},
         )
         assert response.status_code == 400
