@@ -271,7 +271,7 @@ def frontend_index() -> FileResponse:
 
 @app.get("/{asset_name}", include_in_schema=False)
 def frontend_asset(asset_name: str) -> FileResponse:
-    allowed_assets = {"app.js", "styles.css"}
+    allowed_assets = {"app.js", "styles.css", "speed-insights.js"}
     if asset_name not in allowed_assets:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
 
